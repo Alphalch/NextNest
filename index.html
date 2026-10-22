@@ -793,3 +793,2834 @@
 
     .btn-del:hover {
       color: var(--error-text);
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .model-note {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+
+    /* Center Canvas Area */
+    .viewport-area {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-canvas);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .viewport-topbar {
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 5;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(24, 26, 29, 0.75);
+    }
+
+    .pill-info {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 4px 11px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .pill-optimized {
+      background: var(--mint-banner-bg);
+      border: 1px solid var(--mint-banner-border);
+      color: var(--mint-light);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--mint-accent);
+    }
+
+    .sheet-tabs {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .sheet-tab {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 4px 11px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .sheet-tab.active {
+      background: var(--mint-accent);
+      color: var(--mint-text-dark);
+      border-color: var(--mint-accent);
+      font-weight: 600;
+    }
+
+    #nestCanvas {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    #nestCanvas:active {
+      cursor: grabbing;
+    }
+
+    .canvas-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      gap: 6px;
+      background: var(--bg-panel);
+      padding: 5px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .canvas-legend {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: var(--bg-panel);
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.73rem;
+      display: flex;
+      gap: 14px;
+      color: var(--text-secondary);
+    }
+
+    .legend-entry {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= TOP STATUS BAR ================= -->
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-indicator"></span>
+      <span>NEXTNEST</span>
+    </div>
+
+    <!-- Center Notification Banner (Mint Green = OK, Yellow = Concern, Red = Error) -->
+    <div id="topStatusBanner" class="status-banner">
+      <div class="status-orb"></div>
+      <div class="status-content">
+        <div id="topStatusTag" class="status-title">READY</div>
+        <div id="topStatusText" class="status-subtitle">Upload DXF files or load the sample batch to begin nesting.</div>
+      </div>
+    </div>
+
+    <!-- Right Action Bar with Download Symbol Buttons (SVG, DXF, Multi-Sheet ZIP) -->
+    <div class="top-actions">
+      <button class="btn" id="btnLoadSamples">Load Sample Batch</button>
+
+      <button class="btn" id="btnExportSVG" title="Download Active Sheet SVG" disabled>
+        <svg class="dl-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>SVG</span>
+      </button>
+
+      <button class="btn" id="btnExportDXF" title="Download Active Sheet DXF" disabled>
+        <svg class="dl-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>DXF</span>
+      </button>
+
+      <button class="btn btn-mint" id="btnExportZIP" title="Download All Sheets (DXF + SVG + QC Report) as ZIP" disabled>
+        <svg class="dl-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span id="zipBtnLabel">ZIP</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progressBar"></div>
+  </div>
+
+  <!-- ================= 3-COLUMN WORKSPACE ================= -->
+  <div class="workspace">
+
+    <!-- LEFT SIDEBAR: Sections 1-3 + Bottom-Left Summary / Debug Panel -->
+    <aside class="left-sidebar">
+      <div class="left-sections-scroll">
+
+        <!-- 1. Batch DXF Input -->
+        <div class="section">
+          <div class="section-header">
+            <span>1. Batch DXF Input</span>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-sm" id="btnResetQty1" title="Reset all part quantities to 1">Rst Qty</button>
+              <button class="btn btn-sm" id="btnClearParts">Clear</button>
+            </div>
+          </div>
+          <div class="upload-card" id="dropzone">
+            <span class="upload-btn-pill">Choose Files</span>
+            <span class="upload-hint" id="uploadHintText">Drop .dxf files here (Default Qty = 1)</span>
+            <input type="file" id="fileInput" accept=".dxf" multiple hidden />
+          </div>
+        </div>
+
+        <!-- 2. BOM Import & Auto Count -->
+        <div class="section">
+          <div class="section-header">
+            <span>2. BOM Import &amp; Auto Count</span>
+            <button class="btn btn-sm" id="btnUploadBOMFile">Upload CSV / JSON</button>
+            <input type="file" id="bomFileInput" accept=".csv,.tsv,.txt,.json" hidden />
+          </div>
+          <div class="bom-container" id="bomBox">
+            <textarea id="bomTextInput" class="bom-textarea" placeholder="Paste BOM rows (PartName, Qty):&#10;MB5 MDF 12mm, 2&#10;MB6 MDF 12mm, 1&#10;Side_Rail_12mm, 1"></textarea>
+            <button class="btn btn-mint btn-sm" id="btnAutoCountBOM" style="padding:6px;">
+              Auto Count from BOM
+            </button>
+            <div class="bom-feedback" id="bomStatus">Unmatched BOM items or missing DXF files highlight in red.</div>
+          </div>
+        </div>
+
+        <!-- 3. Part List -->
+        <div class="section" style="border-bottom:none; flex:1;">
+          <div class="section-header">
+            <span>3. Part List (<span id="partTypeCount">0</span>)</span>
+            <span id="totalInstanceCount">0 parts</span>
+          </div>
+          <div class="parts-list" id="partsList">
+            <div style="text-align:center; padding: 20px 10px; color: var(--text-muted); font-size: 0.78rem;">
+              No DXF parts loaded yet.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM-LEFT: Summary / Debug Panel -->
+      <div class="bottom-left-summary">
+        <div class="summary-box">
+          <div class="summary-box-header">
+            <span class="summary-box-title">Summary &amp; Telemetry</span>
+            <div class="tab-switch">
+              <button class="tab-btn active" id="tabBtnStats">Metrics</button>
+              <button class="tab-btn" id="tabBtnDebug">Debug Log</button>
+            </div>
+          </div>
+
+          <div id="summaryMetricsView" class="stat-rows">
+            <div class="stat-row">
+              <span class="stat-row-label">Parts placed</span>
+              <span class="stat-row-val" id="sumPartsPlaced">0 / 0</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label">Sheet utilization</span>
+              <span class="stat-row-val" id="sumUtilization">0.0% (sheet) · 0.0% (bbox)</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label">Wasted area</span>
+              <span class="stat-row-val" id="sumWastedArea">0.0 mm²</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-row-label">Bounding box</span>
+              <span class="stat-row-val" id="sumBoundingBox">0.00 × 0.00 mm</span>
+            </div>
+            <div class="util-bar-track">
+              <div class="util-bar-fill" id="sumUtilBar"></div>
+            </div>
+          </div>
+
+          <div id="summaryDebugView" class="debug-log-view">
+            <div class="log-entry">NEXTNEST initialized.</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER VIEWPORT: Nesting Canvas -->
+    <main class="viewport-area">
+      <div class="viewport-topbar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pill-info" id="pillPartsEntities">0 parts · 0 entities</span>
+          <div class="sheet-tabs" id="sheetTabs"></div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn btn-sm" id="btnRunQC" disabled>Verify QC</button>
+          <button class="btn btn-sm" id="btnToggleColorMode">View: QC Status</button>
+          <span class="pill-optimized">
+            <span class="pill-dot"></span>
+            <span id="activeLayoutBadge">OPTIMIZED LAYOUT</span>
+          </span>
+        </div>
+      </div>
+
+      <canvas id="nestCanvas"></canvas>
+
+      <div class="canvas-legend">
+        <div class="legend-entry">
+          <span class="swatch" style="background:#82cfa0;"></span>
+          <span>Verified Pass</span>
+        </div>
+        <div class="legend-entry">
+          <span class="swatch" style="background:#eab308;"></span>
+          <span>Tight Kerf Concern</span>
+        </div>
+        <div class="legend-entry">
+          <span class="swatch" style="background:#ef4444;"></span>
+          <span>Infringement Error</span>
+        </div>
+        <div class="legend-entry">
+          <span style="width:12px; height:2px; border-top:2px dashed #eab308;"></span>
+          <span>Sheet Brim</span>
+        </div>
+      </div>
+
+      <div class="canvas-controls">
+        <button class="btn btn-sm" id="btnZoomIn">+</button>
+        <button class="btn btn-sm" id="btnZoomOut">-</button>
+        <button class="btn btn-sm" id="btnFitView">Fit Sheet</button>
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR: Sections 4-5 at Top-Right, Summary + "Start Nesting" at Bottom-Right -->
+    <aside class="right-sidebar">
+      <div class="right-top-group">
+
+        <!-- 4. Sheet Size, Brim, Spacing & 1-Degree Rotation Slider -->
+        <div class="section">
+          <div class="section-header">
+            <span>4. Sheet Size &amp; Spacing</span>
+          </div>
+
+          <div class="field" style="margin-bottom:10px;">
+            <label for="sheetPreset">Sheet Preset</label>
+            <div class="input-wrap">
+              <select id="sheetPreset">
+                <option value="custom">Custom Dimensions</option>
+                <option value="2440,1220" selected>2440 × 1220 mm</option>
+                <option value="1200,800">1200 × 800 mm</option>
+                <option value="2000,1000">2000 × 1000 mm</option>
+                <option value="600,400">600 × 400 mm</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="sheetWidth">Width</label>
+              <div class="input-wrap">
+                <input type="number" id="sheetWidth" value="2440" min="50" step="10" />
+                <span class="unit">mm</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="sheetHeight">Height</label>
+              <div class="input-wrap">
+                <input type="number" id="sheetHeight" value="1220" min="50" step="10" />
+                <span class="unit">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="sheetBrim">Sheet Brim</label>
+              <div class="input-wrap">
+                <input type="number" id="sheetBrim" value="10" min="0" step="0.5" />
+                <span class="unit">mm</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="partSpacing">Part Spacing</label>
+              <div class="input-wrap">
+                <input type="number" id="partSpacing" value="8" min="0" step="0.5" />
+                <span class="unit">mm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rotation Steps Slider (Supports up to 360 steps = 1.0 deg rotation) -->
+          <div class="slider-box">
+            <div class="slider-top-row">
+              <span style="color:var(--text-secondary); font-weight:500;">Rotation Freedom</span>
+              <span class="slider-val-badge" id="rotSliderLabel">4 steps · 90.0°</span>
+            </div>
+            <input type="range" id="rotSteps" class="mint-slider" min="1" max="360" value="4" step="1" />
+            <div class="slider-presets">
+              <button type="button" class="preset-chip" data-steps="1">0° Lock</button>
+              <button type="button" class="preset-chip active" data-steps="4">90° (4)</button>
+              <button type="button" class="preset-chip" data-steps="8">45° (8)</button>
+              <button type="button" class="preset-chip" data-steps="24">15° (24)</button>
+              <button type="button" class="preset-chip" data-steps="72">5° (72)</button>
+              <button type="button" class="preset-chip" data-steps="360">1° (360)</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="nestResolution">Solver Grid Step</label>
+            <div class="input-wrap">
+              <select id="nestResolution">
+                <option value="4">4.0 mm (Fast)</option>
+                <option value="2.5" selected>2.5 mm (Balanced)</option>
+                <option value="1.5">1.5 mm (Fine)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Model Selection -->
+        <div class="section" style="border-bottom:none;">
+          <div class="section-header">
+            <span>5. Model Selection</span>
+            <span id="modelSpeedTag" style="color:var(--mint-light);">HYBRID</span>
+          </div>
+
+          <div class="field" style="margin-bottom:10px;">
+            <label for="nestingModel">Algorithm</label>
+            <div class="input-wrap">
+              <select id="nestingModel">
+                <option value="hybrid" selected>Hybrid (GA + NFP + Vector Compaction)</option>
+                <option value="trueshape">True-Shape Nesting (Minkowski BLF)</option>
+                <option value="nfp">No-Fit Polygon (NFP Orbital Sliding)</option>
+                <option value="heuristic">Heuristic (Max-Contact + Skyline)</option>
+                <option value="genetic">Genetic Algorithm (Evolutionary)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2" id="evoParamsRow" style="margin-bottom:4px;">
+            <div class="field">
+              <label for="gaGenerations">Generations</label>
+              <div class="input-wrap">
+                <input type="number" id="gaGenerations" value="5" min="2" max="30" step="1" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="gaPopulation">Population</label>
+              <div class="input-wrap">
+                <input type="number" id="gaPopulation" value="6" min="4" max="24" step="2" />
+              </div>
+            </div>
+          </div>
+
+          <div class="model-note" id="modelDescription">
+            Combines evolutionary sequence search with No-Fit Polygon orbital contact candidates and continuous sub-millimeter compaction.
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM-RIGHT: Summary + Live Estimated Time + "Start Nesting" Button Below It -->
+      <div class="right-bottom-dock">
+        <div class="mini-summary-grid">
+          <div class="mini-card">
+            <span class="mini-label">Active Sheets</span>
+            <span class="mini-val" id="rightStatSheets">0</span>
+          </div>
+          <div class="mini-card">
+            <span class="mini-label">Min Clearance</span>
+            <span class="mini-val" id="rightStatGap">--</span>
+          </div>
+          <div class="mini-card">
+            <span class="mini-label">QC Infringements</span>
+            <span class="mini-val" id="rightStatInfringements" style="color:var(--mint-light);">0</span>
+          </div>
+          <div class="mini-card">
+            <span class="mini-label" id="timeCardLabel">Est. Time</span>
+            <span class="mini-val" id="rightStatTime">~0.5s</span>
+          </div>
+        </div>
+
+        <button class="btn-nest-primary" id="btnRunNest">
+          Start Nesting
+        </button>
+      </div>
+    </aside>
+
+  </div>
+
+<script>
+/**
+ * ============================================================================
+ * 1. VECTOR GEOMETRY & EXACT INFRINGEMENT MATHEMATICS
+ * ============================================================================
+ */
+const PALETTE = [
+  '#82cfa0', '#a3e0ba', '#64b5f6', '#81c784',
+  '#4db6ac', '#aed581', '#4dd0e1', '#a5d6a7'
+];
+
+const MODEL_DESCRIPTIONS = {
+  trueshape: {
+    tag: 'TRUE-SHAPE',
+    short: 'True-Shape BLF',
+    usesEvo: false,
+    text: 'Converts exact part contours and kerf spacing into horizontal run-length interval masks and packs largest-first into a bottom-left gravity field.'
+  },
+  nfp: {
+    tag: 'NO-FIT POLYGON',
+    short: 'NFP Orbital',
+    usesEvo: false,
+    text: 'Computes Inner-Fit Polygon (IFP) corners and orbital NFP contact frontier points around placed parts so incoming shapes slide directly along existing contours.'
+  },
+  heuristic: {
+    tag: 'HEURISTIC',
+    short: 'Max-Contact Heuristic',
+    usesEvo: false,
+    text: 'Evaluates candidate placements using a weighted objective of Maximum Neighbor Perimeter Contact, Minimum Bounding-Box Expansion, and Skyline Compactness.'
+  },
+  genetic: {
+    tag: 'GENETIC',
+    short: 'Genetic GA',
+    usesEvo: true,
+    text: 'Evolves chromosomes encoding part insertion sequences and rotation angles across generations using Order-1 Crossover (OX1) and mutation.'
+  },
+  hybrid: {
+    tag: 'HYBRID',
+    short: 'Hybrid Meta-Solver',
+    usesEvo: true,
+    text: 'Combines evolutionary sequence search with No-Fit Polygon orbital contact candidates and continuous sub-millimeter compaction.'
+  }
+};
+
+function logDebug(msg, level = 'info') {
+  const box = document.getElementById('summaryDebugView');
+  if (!box) return;
+  const line = document.createElement('div');
+  const ts = new Date().toLocaleTimeString([], { hour12: false });
+  line.className = 'log-entry' + (level === 'ok' ? ' log-ok' : level === 'warn' ? ' log-warn' : level === 'err' ? ' log-err' : '');
+  line.textContent = `[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setTopStatusBar(level, titleText, subtitleText) {
+  const banner = document.getElementById('topStatusBanner');
+  const titleEl = document.getElementById('topStatusTag');
+  const subEl = document.getElementById('topStatusText');
+  banner.className = 'status-banner' + (level === 'error' ? ' state-error' : level === 'concern' ? ' state-concern' : '');
+  titleEl.textContent = titleText;
+  subEl.textContent = subtitleText;
+}
+
+/**
+ * Live Estimation of Time Required for Nesting
+ */
+function estimateNestingTimeSeconds() {
+  const uniqueParts = Math.max(1, state.parts.length);
+  const totalInstances = Math.max(1, state.parts.reduce((s, p) => s + (parseInt(p.quantity, 10) || 0), 0));
+  const rotSteps = parseInt(document.getElementById('rotSteps').value, 10) || 4;
+  const cellSize = parseFloat(document.getElementById('nestResolution').value) || 2.5;
+  const sheetW = parseFloat(document.getElementById('sheetWidth').value) || 2440;
+  const sheetH = parseFloat(document.getElementById('sheetHeight').value) || 1220;
+  const model = document.getElementById('nestingModel').value;
+  const gens = parseInt(document.getElementById('gaGenerations').value, 10) || 5;
+  const pop = parseInt(document.getElementById('gaPopulation').value, 10) || 6;
+
+  const gridFactor = ((sheetW / cellSize) * (sheetH / cellSize)) / 450000;
+  // Precomputation time for unique part rotations (capped by symmetry deduplication)
+  const effectiveRots = Math.min(rotSteps, 72) + Math.max(0, rotSteps - 72) * 0.35;
+  const precomputeSec = uniqueParts * effectiveRots * 0.0045 * Math.sqrt(gridFactor);
+
+  // Active orientations tested per placement pass
+  const activeRotsPerPass = Math.min(rotSteps, 24);
+  const singlePassSec = totalInstances * activeRotsPerPass * 0.008 * gridFactor;
+
+  let solveSec = singlePassSec;
+  if (model === 'genetic') {
+    solveSec = singlePassSec * (gens * pop * 0.38);
+  } else if (model === 'hybrid') {
+    solveSec = singlePassSec * (gens * pop * 0.42) + (totalInstances * 0.04);
+  } else if (model === 'nfp') {
+    solveSec = singlePassSec * 1.25 + (totalInstances * 0.03);
+  } else if (model === 'heuristic') {
+    solveSec = singlePassSec * 1.15;
+  }
+
+  return Math.max(0.2, precomputeSec + solveSec);
+}
+
+function updateEstimatedTimeUI() {
+  const estSec = estimateNestingTimeSeconds();
+  const labelEl = document.getElementById('timeCardLabel');
+  const valEl = document.getElementById('rightStatTime');
+  labelEl.textContent = 'Est. Time';
+  valEl.textContent = estSec < 10 ? `~${estSec.toFixed(1)}s` : `~${Math.round(estSec)}s`;
+}
+
+function signedPolygonArea(pts) {
+  let area = 0;
+  for (let i = 0, n = pts.length; i < n; i++) {
+    const p1 = pts[i], p2 = pts[(i + 1) % n];
+    area += (p1.x * p2.y - p2.x * p1.y);
+  }
+  return area * 0.5;
+}
+
+function getBounds(loops) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const loop of loops) {
+    for (const p of loop) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+  }
+  if (!isFinite(minX)) return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
+  return { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY };
+}
+
+function rotatePoint(p, angleRad) {
+  const c = Math.cos(angleRad), s = Math.sin(angleRad);
+  return { x: p.x * c - p.y * s, y: p.x * s + p.y * c };
+}
+
+function rotateAndNormalizeLoops(loops, angleRad) {
+  const rotated = loops.map(loop => loop.map(p => rotatePoint(p, angleRad)));
+  const b = getBounds(rotated);
+  const normalized = rotated.map(loop =>
+    loop.map(p => ({ x: p.x - b.minX, y: p.y - b.minY }))
+  );
+  return { loops: normalized, width: b.width, height: b.height };
+}
+
+function pointInPolygon(pt, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
+      (pt.x < (xj - xi) * (pt.y - yi) / ((yj - yi) || 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function ccw(A, B, C) {
+  return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
+}
+
+function segmentsIntersect(p1, p2, p3, p4) {
+  if (Math.max(p1.x, p2.x) < Math.min(p3.x, p4.x) - 1e-5 ||
+      Math.max(p3.x, p4.x) < Math.min(p1.x, p2.x) - 1e-5 ||
+      Math.max(p1.y, p2.y) < Math.min(p3.y, p4.y) - 1e-5 ||
+      Math.max(p3.y, p4.y) < Math.min(p1.y, p2.y) - 1e-5) {
+    return false;
+  }
+  return (ccw(p1, p3, p4) !== ccw(p2, p3, p4)) && (ccw(p1, p2, p3) !== ccw(p1, p2, p4));
+}
+
+function pointToSegmentDist(p, a, b) {
+  const l2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2;
+  if (l2 < 1e-10) return Math.hypot(p.x - a.x, p.y - a.y);
+  let t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (a.x + t * (b.x - a.x)), p.y - (a.y + t * (b.y - a.y)));
+}
+
+function polygonMinDistance(polyA, polyB) {
+  let minDist = Infinity;
+  for (let i = 0; i < polyA.length; i++) {
+    const a1 = polyA[i], a2 = polyA[(i + 1) % polyA.length];
+    for (let j = 0; j < polyB.length; j++) {
+      const b1 = polyB[j], b2 = polyB[(j + 1) % polyB.length];
+      const d1 = pointToSegmentDist(a1, b1, b2);
+      if (d1 < minDist) minDist = d1;
+      const d2 = pointToSegmentDist(b1, a1, a2);
+      if (d2 < minDist) minDist = d2;
+    }
+  }
+  return minDist;
+}
+
+/**
+ * ============================================================================
+ * 2. POST-NESTING QC INFRINGEMENT CHECKING PROCEDURE
+ * ============================================================================
+ */
+function runInfringementCheck(sheet, config) {
+  const { sheetWidth, sheetHeight, sheetBrim, partSpacing, cellSize } = config;
+  const placements = sheet.placements;
+  const brimTol = 0.25;
+  const spacingStrictTol = Math.max(0.4, (cellSize || 2.5) * 0.65);
+
+  sheet.conflicts = [];
+  let passCount = 0, warnCount = 0, failCount = 0;
+  let globalMinGap = Infinity;
+
+  const worldPolys = placements.map(pl => {
+    const outer = pl.loops[0] || [];
+    return outer.map(p => ({ x: pl.x + p.x, y: pl.y + p.y }));
+  });
+
+  for (let i = 0; i < placements.length; i++) {
+    placements[i].qcStatus = 'PASS';
+    placements[i].qcMessages = [];
+    placements[i].minClearance = Infinity;
+  }
+
+  for (let i = 0; i < placements.length; i++) {
+    const pl = placements[i];
+    const poly = worldPolys[i];
+    for (const pt of poly) {
+      if (
+        pt.x < sheetBrim - brimTol ||
+        pt.y < sheetBrim - brimTol ||
+        pt.x > sheetWidth - sheetBrim + brimTol ||
+        pt.y > sheetHeight - sheetBrim + brimTol
+      ) {
+        pl.qcStatus = 'FAIL';
+        pl.qcMessages.push('Crosses Sheet Brim');
+        break;
+      }
+    }
+  }
+
+  for (let i = 0; i < placements.length; i++) {
+    const A = placements[i];
+    const polyA = worldPolys[i];
+
+    for (let j = i + 1; j < placements.length; j++) {
+      const B = placements[j];
+      const polyB = worldPolys[j];
+
+      const dx = Math.max(0, Math.max(A.x - (B.x + B.width), B.x - (A.x + A.width)));
+      const dy = Math.max(0, Math.max(A.y - (B.y + B.height), B.y - (A.y + A.height)));
+      const bboxDist = Math.hypot(dx, dy);
+
+      if (bboxDist > partSpacing + 25) {
+        A.minClearance = Math.min(A.minClearance, bboxDist);
+        B.minClearance = Math.min(B.minClearance, bboxDist);
+        globalMinGap = Math.min(globalMinGap, bboxDist);
+        continue;
+      }
+
+      let intersects = false;
+      for (let ia = 0; ia < polyA.length && !intersects; ia++) {
+        const a1 = polyA[ia], a2 = polyA[(ia + 1) % polyA.length];
+        for (let ib = 0; ib < polyB.length; ib++) {
+          if (segmentsIntersect(a1, a2, polyB[ib], polyB[(ib + 1) % polyB.length])) {
+            intersects = true;
+            break;
+          }
+        }
+      }
+
+      let contained = false;
+      if (!intersects && polyA.length >= 3 && polyB.length >= 3) {
+        const centroidA = { x: A.x + A.width * 0.5, y: A.y + A.height * 0.5 };
+        const centroidB = { x: B.x + B.width * 0.5, y: B.y + B.height * 0.5 };
+        if (
+          pointInPolygon(polyA[0], polyB) ||
+          pointInPolygon(centroidA, polyB) ||
+          pointInPolygon(polyB[0], polyA) ||
+          pointInPolygon(centroidB, polyA)
+        ) {
+          contained = true;
+        }
+      }
+
+      if (intersects || contained) {
+        A.qcStatus = 'FAIL';
+        B.qcStatus = 'FAIL';
+        A.minClearance = 0;
+        B.minClearance = 0;
+        globalMinGap = 0;
+        A.qcMessages.push(contained ? `Inside ${B.name}` : `Overlaps ${B.name}`);
+        B.qcMessages.push(contained ? `Contains ${A.name}` : `Overlaps ${A.name}`);
+        sheet.conflicts.push({
+          type: 'FAIL',
+          ax: A.x + A.width / 2,
+          ay: A.y + A.height / 2,
+          bx: B.x + B.width / 2,
+          by: B.y + B.height / 2
+        });
+        continue;
+      }
+
+      const dist = polygonMinDistance(polyA, polyB);
+      if (dist < A.minClearance) A.minClearance = dist;
+      if (dist < B.minClearance) B.minClearance = dist;
+      if (dist < globalMinGap) globalMinGap = dist;
+
+      if (dist < partSpacing - spacingStrictTol) {
+        if (A.qcStatus !== 'FAIL') A.qcStatus = 'WARN';
+        if (B.qcStatus !== 'FAIL') B.qcStatus = 'WARN';
+        A.qcMessages.push(`Gap ${dist.toFixed(1)}mm < ${partSpacing}mm`);
+        B.qcMessages.push(`Gap ${dist.toFixed(1)}mm < ${partSpacing}mm`);
+      }
+    }
+  }
+
+  for (const pl of placements) {
+    if (pl.qcStatus === 'FAIL') failCount++;
+    else if (pl.qcStatus === 'WARN') warnCount++;
+    else passCount++;
+  }
+
+  sheet.qcSummary = { passCount, warnCount, failCount, minGap: globalMinGap };
+  return sheet.qcSummary;
+}
+
+/**
+ * ============================================================================
+ * 3. DXF PARSER WITH DOUBLE-CONTOUR DEDUPLICATION
+ * ============================================================================
+ */
+function cleanPolygonVertices(pts, tol = 0.08) {
+  if (pts.length < 3) return pts;
+  const cleaned = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const prev = cleaned[cleaned.length - 1];
+    if (Math.hypot(pts[i].x - prev.x, pts[i].y - prev.y) > tol) cleaned.push(pts[i]);
+  }
+  if (cleaned.length > 2) {
+    const first = cleaned[0], last = cleaned[cleaned.length - 1];
+    if (Math.hypot(first.x - last.x, first.y - last.y) <= tol) cleaned.pop();
+  }
+  return cleaned;
+}
+
+function parseDXF(dxfText, fileName, colorIndex) {
+  const rawLines = dxfText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const pairs = [];
+  for (let i = 0; i < rawLines.length - 1; i += 2) {
+    const code = parseInt(rawLines[i].trim(), 10);
+    const val = rawLines[i + 1].trim();
+    if (!isNaN(code)) pairs.push({ code, val });
+  }
+
+  let idx = 0, inEntities = false;
+  while (idx < pairs.length) {
+    if (pairs[idx].code === 0 && pairs[idx].val === 'SECTION') {
+      if (idx + 1 < pairs.length && pairs[idx + 1].code === 2 && pairs[idx + 1].val === 'ENTITIES') {
+        inEntities = true; idx += 2; break;
+      }
+    }
+    idx++;
+  }
+  if (!inEntities) idx = 0;
+
+  const closedLoops = [];
+  const rawOpenSegments = [];
+
+  const arcToPoints = (cx, cy, r, startDeg, endDeg, ccw = true) => {
+    let s = startDeg * Math.PI / 180, e = endDeg * Math.PI / 180;
+    if (ccw) { while (e <= s) e += Math.PI * 2; }
+    else { while (s <= e) s += Math.PI * 2; }
+    const sweep = Math.abs(e - s);
+    const steps = Math.max(8, Math.ceil((sweep / (Math.PI * 2)) * 48));
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const ang = s + (e - s) * (i / steps);
+      pts.push({ x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang) });
+    }
+    return pts;
+  };
+
+  const bulgeToArcPoints = (p1, p2, bulge) => {
+    if (Math.abs(bulge) < 1e-6) return [p1, p2];
+    const theta = 4 * Math.atan(bulge);
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 1e-6) return [p1];
+    const radius = dist / (2 * Math.sin(Math.abs(theta) / 2));
+    const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
+    const dirX = dx / dist, dirY = dy / dist;
+    const sign = bulge > 0 ? 1 : -1;
+    const h = Math.sqrt(Math.max(0, radius * radius - (dist * dist) / 4)) * (Math.abs(bulge) > 1 ? -1 : 1);
+    const cx = midX - sign * dirY * h, cy = midY + sign * dirX * h;
+    const startAng = Math.atan2(p1.y - cy, p1.x - cx);
+    const steps = Math.max(6, Math.ceil(Math.abs(theta) / (Math.PI / 18)));
+    const pts = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = startAng + (theta * i) / steps;
+      pts.push({ x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) });
+    }
+    return pts;
+  };
+
+  while (idx < pairs.length) {
+    const p = pairs[idx];
+    if (p.code === 0 && p.val === 'ENDSEC') break;
+
+    if (p.code === 0) {
+      const type = p.val;
+      idx++;
+      if (type === 'LINE') {
+        let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+        while (idx < pairs.length && pairs[idx].code !== 0) {
+          const { code, val } = pairs[idx];
+          if (code === 10) x1 = parseFloat(val);
+          else if (code === 20) y1 = parseFloat(val);
+          else if (code === 11) x2 = parseFloat(val);
+          else if (code === 21) y2 = parseFloat(val);
+          idx++;
+        }
+        if (Math.hypot(x2 - x1, y2 - y1) > 1e-3) rawOpenSegments.push([{ x: x1, y: y1 }, { x: x2, y: y2 }]);
+      } else if (type === 'CIRCLE') {
+        let cx = 0, cy = 0, r = 0;
+        while (idx < pairs.length && pairs[idx].code !== 0) {
+          const { code, val } = pairs[idx];
+          if (code === 10) cx = parseFloat(val);
+          else if (code === 20) cy = parseFloat(val);
+          else if (code === 40) r = parseFloat(val);
+          idx++;
+        }
+        if (r > 1e-3) {
+          const pts = arcToPoints(cx, cy, r, 0, 360);
+          pts.pop();
+          closedLoops.push(pts);
+        }
+      } else if (type === 'ARC') {
+        let cx = 0, cy = 0, r = 0, sAng = 0, eAng = 360;
+        while (idx < pairs.length && pairs[idx].code !== 0) {
+          const { code, val } = pairs[idx];
+          if (code === 10) cx = parseFloat(val);
+          else if (code === 20) cy = parseFloat(val);
+          else if (code === 40) r = parseFloat(val);
+          else if (code === 50) sAng = parseFloat(val);
+          else if (code === 51) eAng = parseFloat(val);
+          idx++;
+        }
+        if (r > 1e-3) rawOpenSegments.push(arcToPoints(cx, cy, r, sAng, eAng, true));
+      } else if (type === 'LWPOLYLINE') {
+        const verts = [];
+        let curVert = null, flag = 0;
+        while (idx < pairs.length && pairs[idx].code !== 0) {
+          const { code, val } = pairs[idx];
+          if (code === 70) flag = parseInt(val, 10);
+          else if (code === 10) {
+            if (curVert) verts.push(curVert);
+            curVert = { x: parseFloat(val), y: 0, bulge: 0 };
+          } else if (code === 20 && curVert) curVert.y = parseFloat(val);
+          else if (code === 42 && curVert) curVert.bulge = parseFloat(val);
+          idx++;
+        }
+        if (curVert) verts.push(curVert);
+        if (verts.length >= 2) {
+          const isClosed = (flag & 1) === 1 ||
+            Math.hypot(verts[0].x - verts[verts.length - 1].x, verts[0].y - verts[verts.length - 1].y) < 0.1;
+          const polyPts = [];
+          const count = isClosed ? verts.length : verts.length - 1;
+          for (let i = 0; i < count; i++) {
+            const v1 = verts[i], v2 = verts[(i + 1) % verts.length];
+            const seg = bulgeToArcPoints(v1, v2, v1.bulge || 0);
+            if (i > 0) seg.shift();
+            polyPts.push(...seg);
+          }
+          const cleaned = cleanPolygonVertices(polyPts);
+          if (isClosed && cleaned.length >= 3) closedLoops.push(cleaned);
+          else if (cleaned.length >= 2) rawOpenSegments.push(cleaned);
+        }
+      } else if (type === 'POLYLINE') {
+        let flag = 0;
+        while (idx < pairs.length && pairs[idx].code !== 0) {
+          if (pairs[idx].code === 70) flag = parseInt(pairs[idx].val, 10);
+          idx++;
+        }
+        const verts = [];
+        while (idx < pairs.length) {
+          if (pairs[idx].code === 0 && pairs[idx].val === 'VERTEX') {
+            idx++;
+            let vx = 0, vy = 0, bulge = 0;
+            while (idx < pairs.length && pairs[idx].code !== 0) {
+              if (pairs[idx].code === 10) vx = parseFloat(pairs[idx].val);
+              else if (pairs[idx].code === 20) vy = parseFloat(pairs[idx].val);
+              else if (pairs[idx].code === 42) bulge = parseFloat(pairs[idx].val);
+              idx++;
+            }
+            verts.push({ x: vx, y: vy, bulge });
+          } else if (pairs[idx].code === 0 && pairs[idx].val === 'SEQEND') {
+            idx++; break;
+          } else break;
+        }
+        if (verts.length >= 2) {
+          const isClosed = (flag & 1) === 1 ||
+            Math.hypot(verts[0].x - verts[verts.length - 1].x, verts[0].y - verts[verts.length - 1].y) < 0.1;
+          const pts = cleanPolygonVertices(verts.map(v => ({ x: v.x, y: v.y })));
+          if (isClosed && pts.length >= 3) closedLoops.push(pts);
+          else if (pts.length >= 2) rawOpenSegments.push(pts);
+        }
+      } else {
+        while (idx < pairs.length && pairs[idx].code !== 0) idx++;
+      }
+    } else idx++;
+  }
+
+  const openSegments = [];
+  const SEG_TOL = 0.2;
+  for (const seg of rawOpenSegments) {
+    const s0 = seg[0], s1 = seg[seg.length - 1];
+    let isDup = false;
+    for (const kept of openSegments) {
+      const k0 = kept[0], k1 = kept[kept.length - 1];
+      const sameDir = Math.hypot(s0.x - k0.x, s0.y - k0.y) < SEG_TOL && Math.hypot(s1.x - k1.x, s1.y - k1.y) < SEG_TOL;
+      const revDir = Math.hypot(s0.x - k1.x, s0.y - k1.y) < SEG_TOL && Math.hypot(s1.x - k0.x, s1.y - k0.y) < SEG_TOL;
+      if (sameDir || revDir) { isDup = true; break; }
+    }
+    if (!isDup) openSegments.push(seg);
+  }
+
+  const TOL = 0.35;
+  const used = new Array(openSegments.length).fill(false);
+  for (let i = 0; i < openSegments.length; i++) {
+    if (used[i]) continue;
+    used[i] = true;
+    const chain = [...openSegments[i]];
+    let extended = true;
+    while (extended) {
+      extended = false;
+      const head = chain[0], tail = chain[chain.length - 1];
+      if (chain.length >= 3 && Math.hypot(head.x - tail.x, head.y - tail.y) <= TOL) {
+        chain.pop(); break;
+      }
+      for (let j = 0; j < openSegments.length; j++) {
+        if (used[j]) continue;
+        const seg = openSegments[j];
+        const sHead = seg[0], sTail = seg[seg.length - 1];
+        if (Math.hypot(tail.x - sHead.x, tail.y - sHead.y) <= TOL) {
+          chain.push(...seg.slice(1)); used[j] = true; extended = true; break;
+        } else if (Math.hypot(tail.x - sTail.x, tail.y - sTail.y) <= TOL) {
+          chain.push(...[...seg].reverse().slice(1)); used[j] = true; extended = true; break;
+        } else if (Math.hypot(head.x - sTail.x, head.y - sTail.y) <= TOL) {
+          chain.unshift(...seg.slice(0, seg.length - 1)); used[j] = true; extended = true; break;
+        } else if (Math.hypot(head.x - sHead.x, head.y - sHead.y) <= TOL) {
+          chain.unshift(...[...seg].reverse().slice(0, seg.length - 1)); used[j] = true; extended = true; break;
+        }
+      }
+    }
+    const cleanedChain = cleanPolygonVertices(chain);
+    if (cleanedChain.length >= 3 && Math.abs(signedPolygonArea(cleanedChain)) > 1.0) {
+      closedLoops.push(cleanedChain);
+    }
+  }
+
+  if (closedLoops.length === 0) throw new Error(`No valid closed geometry found in ${fileName}`);
+
+  closedLoops.sort((a, b) => Math.abs(signedPolygonArea(b)) - Math.abs(signedPolygonArea(a)));
+
+  const outerLoop = closedLoops[0];
+  const outerBounds = getBounds([outerLoop]);
+  const outerArea = Math.abs(signedPolygonArea(outerLoop));
+  const uniqueLoops = [outerLoop];
+
+  for (let i = 1; i < closedLoops.length; i++) {
+    const candidate = closedLoops[i];
+    const candArea = Math.abs(signedPolygonArea(candidate));
+    const candBounds = getBounds([candidate]);
+    if (candArea < 1.0 || candArea >= outerArea * 0.96) continue;
+    const sameBBox =
+      Math.abs(candBounds.minX - outerBounds.minX) < 1.0 &&
+      Math.abs(candBounds.minY - outerBounds.minY) < 1.0 &&
+      Math.abs(candBounds.maxX - outerBounds.maxX) < 1.0 &&
+      Math.abs(candBounds.maxY - outerBounds.maxY) < 1.0;
+    if (sameBBox) continue;
+
+    let dupHole = false;
+    for (let k = 1; k < uniqueLoops.length; k++) {
+      const kb = getBounds([uniqueLoops[k]]);
+      if (
+        Math.abs(candBounds.minX - kb.minX) < 1.0 &&
+        Math.abs(candBounds.minY - kb.minY) < 1.0 &&
+        Math.abs(candBounds.width - kb.width) < 1.0 &&
+        Math.abs(candBounds.height - kb.height) < 1.0
+      ) { dupHole = true; break; }
+    }
+    if (!dupHole && pointInPolygon(candidate[0], outerLoop)) {
+      uniqueLoops.push(candidate);
+    }
+  }
+
+  const bounds = getBounds(uniqueLoops);
+  const normalizedLoops = uniqueLoops.map(loop =>
+    loop.map(pt => ({ x: pt.x - bounds.minX, y: pt.y - bounds.minY }))
+  );
+
+  let holesArea = 0;
+  for (let i = 1; i < normalizedLoops.length; i++) holesArea += Math.abs(signedPolygonArea(normalizedLoops[i]));
+  const netArea = Math.max(outerArea - holesArea, outerArea * 0.15);
+
+  logDebug(`Loaded ${fileName}: ${uniqueLoops.length} loop(s), ${bounds.width.toFixed(0)}x${bounds.height.toFixed(0)}mm`, 'ok');
+
+  return {
+    id: 'part_' + Math.random().toString(36).slice(2, 9),
+    name: fileName.replace(/\.dxf$/i, ''),
+    loops: normalizedLoops,
+    width: bounds.width,
+    height: bounds.height,
+    area: netArea,
+    quantity: 1,
+    bomUnmatched: false,
+    color: PALETTE[colorIndex % PALETTE.length]
+  };
+}
+
+/**
+ * ============================================================================
+ * 4. BOM PARSER WITH RED UNMATCH DETECTION
+ * ============================================================================
+ */
+function normalizePartKey(str) {
+  return String(str || '')
+    .toLowerCase()
+    .replace(/\.dxf$/i, '')
+    .replace(/[\s_\-\.]+/g, '')
+    .trim();
+}
+
+function parseBOMAndAutoCount(bomText, parts) {
+  const text = (bomText || '').trim();
+  for (const p of parts) p.bomUnmatched = false;
+  if (!text) return { matchedFiles: 0, totalInstances: 0, unmatchedBomRows: [], unmatchedParts: [] };
+
+  const bomMap = new Map();
+
+  if (text.startsWith('[') || text.startsWith('{')) {
+    try {
+      const data = JSON.parse(text);
+      const arr = Array.isArray(data) ? data : (data.items || data.bom || []);
+      for (const row of arr) {
+        const name = row.part || row.name || row.file || row.partNumber || row.PartName || '';
+        const qty = parseInt(row.qty ?? row.quantity ?? row.count ?? row.Qty ?? 1, 10);
+        if (name && !isNaN(qty) && qty > 0) bomMap.set(name, (bomMap.get(name) || 0) + qty);
+      }
+    } catch (e) {}
+  }
+
+  if (bomMap.size === 0) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    let nameCol = 0, qtyCol = -1, startRow = 0;
+
+    if (lines.length > 0) {
+      const firstCols = lines[0].split(/[\t,;]+/).map(c => c.trim().replace(/^["']|["']$/g, ''));
+      const lowerCols = firstCols.map(c => c.toLowerCase());
+      const detectedNameIdx = lowerCols.findIndex(c =>
+        /^(part|part\s*name|part\s*no|part\s*number|file|filename|item|description|component|name|dxf)$/.test(c)
+      );
+      const detectedQtyIdx = lowerCols.findIndex(c =>
+        /^(qty|quantity|count|amount|pcs|pieces|req|required)$/.test(c)
+      );
+      if (detectedNameIdx !== -1 || detectedQtyIdx !== -1) {
+        nameCol = detectedNameIdx !== -1 ? detectedNameIdx : 0;
+        qtyCol = detectedQtyIdx;
+        startRow = 1;
+      }
+    }
+
+    for (let i = startRow; i < lines.length; i++) {
+      const cols = lines[i].split(/[\t,;]+/).map(c => c.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      if (cols.length === 0) continue;
+      let partName = cols[nameCol] || cols[0];
+      let qty = 1;
+      if (qtyCol !== -1 && cols[qtyCol] !== undefined) {
+        const parsed = parseInt(cols[qtyCol], 10);
+        qty = isNaN(parsed) ? 1 : parsed;
+      } else if (cols.length >= 2) {
+        for (let c = cols.length - 1; c >= 1; c--) {
+          if (/^\d+$/.test(cols[c])) { qty = parseInt(cols[c], 10); break; }
+        }
+      }
+      if (partName && qty > 0) bomMap.set(partName, (bomMap.get(partName) || 0) + qty);
+    }
+  }
+
+  let matchedFiles = 0, totalInstances = 0;
+  const unmatchedBomRows = [];
+  const matchedPartIds = new Set();
+
+  for (const [bomName, bomQty] of bomMap.entries()) {
+    const normBom = normalizePartKey(bomName);
+    if (!normBom) continue;
+
+    let targetPart = parts.find(p => normalizePartKey(p.name) === normBom);
+    if (!targetPart) {
+      targetPart = parts.find(p => {
+        const normP = normalizePartKey(p.name);
+        return normP.includes(normBom) || normBom.includes(normP);
+      });
+    }
+
+    if (targetPart) {
+      if (!matchedPartIds.has(targetPart.id)) {
+        targetPart.quantity = bomQty;
+        matchedPartIds.add(targetPart.id);
+        matchedFiles++;
+      } else {
+        targetPart.quantity += bomQty;
+      }
+      totalInstances += bomQty;
+    } else {
+      unmatchedBomRows.push(`${bomName} (Qty: ${bomQty})`);
+    }
+  }
+
+  const unmatchedParts = [];
+  for (const part of parts) {
+    if (!matchedPartIds.has(part.id)) {
+      part.bomUnmatched = true;
+      unmatchedParts.push(part.name);
+    } else {
+      part.bomUnmatched = false;
+    }
+  }
+
+  return { matchedFiles, totalInstances, unmatchedBomRows, unmatchedParts };
+}
+
+/**
+ * ============================================================================
+ * 5. SAMPLE BATCH GENERATOR
+ * ============================================================================
+ */
+function buildSampleMDFBatch() {
+  const stripLoop = [[{ x: 0, y: 0 }, { x: 75, y: 0 }, { x: 75, y: 780 }, { x: 0, y: 780 }]];
+  const mb5Loop = [[{ x: 0, y: 0 }, { x: 480, y: 0 }, { x: 480, y: 600 }, { x: 0, y: 600 }]];
+  const mb6Loop = [[{ x: 0, y: 0 }, { x: 310, y: 400 }, { x: 310, y: 480 }, { x: 0, y: 480 }]];
+
+  const addCircle = (cx, cy, r) => {
+    const pts = [];
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * Math.PI * 2;
+      pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+    }
+    return pts;
+  };
+  const braceLoops = [
+    [
+      { x: 0, y: 0 }, { x: 240, y: 0 }, { x: 240, y: 70 },
+      { x: 70, y: 70 }, { x: 70, y: 240 }, { x: 0, y: 240 }
+    ],
+    addCircle(35, 35, 10),
+    addCircle(195, 35, 10),
+    addCircle(35, 195, 10)
+  ];
+
+  const makePart = (name, loops, qty, colorIdx) => {
+    const b = getBounds(loops);
+    const norm = loops.map(l => l.map(p => ({ x: p.x - b.minX, y: p.y - b.minY })));
+    const outerA = Math.abs(signedPolygonArea(norm[0]));
+    let holeA = 0;
+    for (let i = 1; i < norm.length; i++) holeA += Math.abs(signedPolygonArea(norm[i]));
+    return {
+      id: 'sample_' + colorIdx + '_' + Math.random().toString(36).slice(2, 6),
+      name,
+      loops: norm,
+      width: b.width,
+      height: b.height,
+      area: outerA - holeA,
+      quantity: qty,
+      bomUnmatched: false,
+      color: PALETTE[colorIdx % PALETTE.length]
+    };
+  };
+
+  return [
+    makePart('Side_Rail_12mm', stripLoop, 1, 0),
+    makePart('MB5 MDF 12mm', mb5Loop, 1, 1),
+    makePart('MB6 MDF 12mm', mb6Loop, 1, 2),
+    makePart('L_Support_MDF_12mm', braceLoops, 1, 3)
+  ];
+}
+
+/**
+ * ============================================================================
+ * 6. HIGH-SPEED SPAN-INTERVAL RASTERIZER & MULTI-ALGORITHM NESTING ENGINE
+ * ============================================================================
+ */
+const offscreen = document.createElement('canvas');
+const offCtx = offscreen.getContext('2d', { willReadFrequently: true });
+
+function maskToHorizontalSpans(mask, cols, rows, pad) {
+  const spans = [];
+  for (let y = 0; y < rows; y++) {
+    let inSpan = false, xStart = 0;
+    const rowOffset = y * cols;
+    for (let x = 0; x < cols; x++) {
+      if (mask[rowOffset + x] === 1) {
+        if (!inSpan) { inSpan = true; xStart = x; }
+      } else if (inSpan) {
+        spans.push({ dy: y - pad, x1: xStart - pad, x2: x - 1 - pad });
+        inSpan = false;
+      }
+    }
+    if (inSpan) spans.push({ dy: y - pad, x1: xStart - pad, x2: cols - 1 - pad });
+  }
+  return spans;
+}
+
+function rasterizeVariation(loops, width, height, cellSize, dilationRadiusPx) {
+  const pad = dilationRadiusPx + 2;
+  const cols = Math.ceil(width / cellSize) + pad * 2;
+  const rows = Math.ceil(height / cellSize) + pad * 2;
+
+  offscreen.width = cols;
+  offscreen.height = rows;
+  offCtx.clearRect(0, 0, cols, rows);
+
+  const outer = loops[0];
+  offCtx.fillStyle = '#ffffff';
+  offCtx.beginPath();
+  if (outer && outer.length >= 3) {
+    offCtx.moveTo(pad + outer[0].x / cellSize, pad + outer[0].y / cellSize);
+    for (let i = 1; i < outer.length; i++) {
+      offCtx.lineTo(pad + outer[i].x / cellSize, pad + outer[i].y / cellSize);
+    }
+    offCtx.closePath();
+  }
+  offCtx.fill('nonzero');
+  offCtx.lineWidth = 1.25;
+  offCtx.strokeStyle = '#ffffff';
+  offCtx.stroke();
+
+  const img = offCtx.getImageData(0, 0, cols, rows).data;
+  const coreMask = new Uint8Array(cols * rows);
+  for (let i = 0; i < cols * rows; i++) {
+    if (img[i * 4 + 3] > 48) coreMask[i] = 1;
+  }
+
+  const dilatedMask = new Uint8Array(cols * rows);
+  const rSq = dilationRadiusPx * dilationRadiusPx;
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (coreMask[y * cols + x] === 1) {
+        const yMin = Math.max(0, y - dilationRadiusPx);
+        const yMax = Math.min(rows - 1, y + dilationRadiusPx);
+        const xMin = Math.max(0, x - dilationRadiusPx);
+        const xMax = Math.min(cols - 1, x + dilationRadiusPx);
+        for (let dy = yMin; dy <= yMax; dy++) {
+          const dyy = (dy - y) * (dy - y);
+          for (let dx = xMin; dx <= xMax; dx++) {
+            if ((dx - x) * (dx - x) + dyy <= rSq) dilatedMask[dy * cols + dx] = 1;
+          }
+        }
+      }
+    }
+  }
+
+  const coreSpans = maskToHorizontalSpans(coreMask, cols, rows, pad);
+  const dilatedSpans = maskToHorizontalSpans(dilatedMask, cols, rows, pad);
+
+  const nfpHaloPoints = [];
+  for (const sp of dilatedSpans) {
+    nfpHaloPoints.push({ dx: sp.x1, dy: sp.dy });
+    if (sp.x2 !== sp.x1) nfpHaloPoints.push({ dx: sp.x2, dy: sp.dy });
+  }
+
+  return {
+    loops,
+    width,
+    height,
+    gw: Math.ceil(width / cellSize),
+    gh: Math.ceil(height / cellSize),
+    coreSpans,
+    dilatedSpans,
+    nfpHaloPoints
+  };
+}
+
+function checkSpanCollision(grid, sheetCols, sheetRows, gx, gy, coreSpans) {
+  for (let i = 0, len = coreSpans.length; i < len; i++) {
+    const sp = coreSpans[i];
+    const cy = gy + sp.dy;
+    if (cy < 0 || cy >= sheetRows) return true;
+    const xStart = gx + sp.x1, xEnd = gx + sp.x2;
+    if (xStart < 0 || xEnd >= sheetCols) return true;
+    const rowBase = cy * sheetCols;
+    for (let cx = xStart; cx <= xEnd; cx++) {
+      if (grid[rowBase + cx] !== 0) return true;
+    }
+  }
+  return false;
+}
+
+function computeContactScore(grid, sheetCols, sheetRows, gx, gy, gw, gh, coreSpans) {
+  let contact = 0;
+  if (gx === 0) contact += gh * 2;
+  if (gy === 0) contact += gw * 2;
+
+  for (let i = 0, len = coreSpans.length; i < len; i += 2) {
+    const sp = coreSpans[i];
+    const cy = gy + sp.dy;
+    if (cy < 0 || cy >= sheetRows) continue;
+    const leftX = gx + sp.x1 - 1, rightX = gx + sp.x2 + 1;
+    if (leftX >= 0 && grid[cy * sheetCols + leftX] !== 0) contact += 2;
+    if (rightX < sheetCols && grid[cy * sheetCols + rightX] !== 0) contact += 2;
+  }
+  return contact;
+}
+
+function generateNFPCandidates(sheet, v, sheetCols, sheetRows) {
+  const candidates = [];
+  const seen = new Set();
+  const addCand = (gx, gy) => {
+    if (gx < 0 || gy < 0 || gx > sheetCols - v.gw || gy > sheetRows - v.gh) return;
+    const key = (gx << 16) | gy;
+    if (!seen.has(key)) {
+      seen.add(key);
+      candidates.push({ gx, gy });
+    }
+  };
+
+  addCand(0, 0);
+
+  const refStep = Math.max(1, Math.floor(v.coreSpans.length / 8));
+  const refSpans = [];
+  for (let i = 0; i < v.coreSpans.length; i += refStep) refSpans.push(v.coreSpans[i]);
+
+  for (const pl of sheet.placements) {
+    addCand(pl.gx + pl.gw, pl.gy);
+    addCand(pl.gx, pl.gy + pl.gh);
+    addCand(pl.gx + pl.gw, 0);
+    addCand(0, pl.gy + pl.gh);
+
+    const halo = pl.nfpHaloPoints || [];
+    const haloStep = Math.max(1, Math.floor(halo.length / 28));
+    for (let h = 0; h < halo.length; h += haloStep) {
+      const hp = halo[h];
+      const worldCellX = pl.gx + hp.dx, worldCellY = pl.gy + hp.dy;
+      addCand(worldCellX + 1, worldCellY);
+      addCand(worldCellX, worldCellY + 1);
+      for (const ref of refSpans) {
+        addCand(worldCellX - ref.x1 + 1, worldCellY - ref.dy);
+        addCand(worldCellX - ref.x2 - 1, worldCellY - ref.dy);
+      }
+    }
+  }
+
+  candidates.sort((a, b) => (a.gx * 1.1 + a.gy) - (b.gx * 1.1 + b.gy));
+  return candidates;
+}
+
+function runVectorCompactionPass(sheet, config) {
+  const { sheetBrim, partSpacing } = config;
+  const placements = sheet.placements;
+  if (placements.length <= 1) return;
+
+  const getWorldPoly = (pl, testX, testY) =>
+    pl.loops[0].map(p => ({ x: testX + p.x, y: testY + p.y }));
+
+  const isValidVectorPos = (idx, testX, testY) => {
+    const A = placements[idx];
+    if (testX < sheetBrim || testY < sheetBrim) return false;
+    const polyA = getWorldPoly(A, testX, testY);
+
+    for (let j = 0; j < placements.length; j++) {
+      if (j === idx) continue;
+      const B = placements[j];
+      const dx = Math.max(0, Math.max(testX - (B.x + B.width), B.x - (testX + A.width)));
+      const dy = Math.max(0, Math.max(testY - (B.y + B.height), B.y - (testY + A.height)));
+      if (Math.hypot(dx, dy) > partSpacing + 2) continue;
+
+      const polyB = getWorldPoly(B, B.x, B.y);
+      for (let ia = 0; ia < polyA.length; ia++) {
+        const a1 = polyA[ia], a2 = polyA[(ia + 1) % polyA.length];
+        for (let ib = 0; ib < polyB.length; ib++) {
+          if (segmentsIntersect(a1, a2, polyB[ib], polyB[(ib + 1) % polyB.length])) return false;
+        }
+      }
+      if (pointInPolygon(polyA[0], polyB) || pointInPolygon(polyB[0], polyA)) return false;
+      if (polygonMinDistance(polyA, polyB) < partSpacing - 0.05) return false;
+    }
+    return true;
+  };
+
+  const stepSizes = [2.0, 0.5];
+  for (let i = 0; i < placements.length; i++) {
+    const pl = placements[i];
+    for (const step of stepSizes) {
+      while (pl.x - step >= sheetBrim && isValidVectorPos(i, pl.x - step, pl.y)) pl.x -= step;
+      while (pl.y - step >= sheetBrim && isValidVectorPos(i, pl.x, pl.y - step)) pl.y -= step;
+    }
+  }
+}
+
+function executePlacementPass(orderedInstances, partCache, config, mode) {
+  const { sheetWidth, sheetHeight, sheetBrim, cellSize } = config;
+  const usableW = sheetWidth - 2 * sheetBrim;
+  const usableH = sheetHeight - 2 * sheetBrim;
+  const sheetCols = Math.floor(usableW / cellSize);
+  const sheetRows = Math.floor(usableH / cellSize);
+
+  const sheets = [];
+  const createNewSheet = () => ({
+    index: sheets.length + 1,
+    grid: new Uint8Array(sheetCols * sheetRows),
+    placements: [],
+    conflicts: [],
+    maxGx: 0,
+    maxGy: 0,
+    qcSummary: { passCount: 0, warnCount: 0, failCount: 0, minGap: Infinity }
+  });
+
+  for (let idx = 0; idx < orderedInstances.length; idx++) {
+    const inst = orderedInstances[idx];
+    const allVars = partCache.get(inst.partId) || [];
+    if (allVars.length === 0) continue;
+
+    let varsToTest = allVars;
+    if (inst.preferredVarIdx !== undefined && allVars.length > 4) {
+      const pref = allVars[inst.preferredVarIdx % allVars.length];
+      const compactVars = [...allVars].sort((a, b) => (a.gw * a.gh) - (b.gw * b.gh)).slice(0, 7);
+      varsToTest = [pref, ...compactVars.filter(v => v !== pref)];
+    } else if (allVars.length > 24) {
+      // Sample top 16 most compact angles + 8 evenly distributed angles across the 360-step spectrum
+      const compactVars = [...allVars].sort((a, b) => (a.gw * a.gh) - (b.gw * b.gh)).slice(0, 16);
+      const set = new Set(compactVars);
+      const step = Math.max(1, Math.floor(allVars.length / 8));
+      for (let k = 0; k < allVars.length; k += step) set.add(allVars[k]);
+      varsToTest = Array.from(set);
+    }
+
+    for (let sIdx = 0; sIdx <= sheets.length; sIdx++) {
+      if (sIdx === sheets.length) sheets.push(createNewSheet());
+      const sheet = sheets[sIdx];
+      const grid = sheet.grid;
+
+      let bestScore = Infinity, bestVar = null, bestGx = -1, bestGy = -1;
+
+      if (mode === 'nfp' || mode === 'hybrid') {
+        for (const v of varsToTest) {
+          const nfpCands = generateNFPCandidates(sheet, v, sheetCols, sheetRows);
+          for (const cand of nfpCands) {
+            const { gx, gy } = cand;
+            if (!checkSpanCollision(grid, sheetCols, sheetRows, gx, gy, v.coreSpans)) {
+              const contact = computeContactScore(grid, sheetCols, sheetRows, gx, gy, v.gw, v.gh, v.coreSpans);
+              const score = gx * 1.15 + gy * 0.95 - contact * 0.35 + (v.gw * v.gh) * 0.0005;
+              if (score < bestScore) {
+                bestScore = score; bestVar = v; bestGx = gx; bestGy = gy;
+              }
+            }
+          }
+        }
+      }
+
+      const scanStride = (mode === 'genetic' || (mode === 'hybrid' && bestVar)) ? 2 : 1;
+
+      for (const v of varsToTest) {
+        const maxGx = sheetCols - v.gw, maxGy = sheetRows - v.gh;
+        if (maxGx < 0 || maxGy < 0) continue;
+
+        for (let gx = 0; gx <= maxGx; gx += scanStride) {
+          if (mode === 'trueshape' && gx * 1.15 >= bestScore) break;
+
+          for (let gy = 0; gy <= maxGy; gy += scanStride) {
+            let baseScore;
+            if (mode === 'heuristic') {
+              const newMaxGx = Math.max(sheet.maxGx, gx + v.gw);
+              const newMaxGy = Math.max(sheet.maxGy, gy + v.gh);
+              const bboxExpansion = (newMaxGx * newMaxGy) - (sheet.maxGx * sheet.maxGy);
+              baseScore = gx * 0.9 + gy * 0.7 + bboxExpansion * 0.015;
+            } else {
+              baseScore = gx * 1.15 + gy + (v.gw * v.gh) * 0.0005;
+            }
+
+            if (mode !== 'heuristic' && baseScore >= bestScore) break;
+
+            if (!checkSpanCollision(grid, sheetCols, sheetRows, gx, gy, v.coreSpans)) {
+              let finalScore = baseScore;
+              if (mode === 'heuristic') {
+                const contact = computeContactScore(grid, sheetCols, sheetRows, gx, gy, v.gw, v.gh, v.coreSpans);
+                finalScore -= contact * 0.65;
+              }
+              if (finalScore < bestScore) {
+                bestScore = finalScore; bestVar = v; bestGx = gx; bestGy = gy;
+              }
+              if (mode === 'trueshape' || mode === 'genetic') break;
+            }
+          }
+        }
+      }
+
+      if (bestVar) {
+        for (const sp of bestVar.dilatedSpans) {
+          const cy = bestGy + sp.dy;
+          if (cy < 0 || cy >= sheetRows) continue;
+          const xStart = Math.max(0, bestGx + sp.x1);
+          const xEnd = Math.min(sheetCols - 1, bestGx + sp.x2);
+          const rowBase = cy * sheetCols;
+          for (let cx = xStart; cx <= xEnd; cx++) grid[rowBase + cx] = 1;
+        }
+
+        if (bestGx + bestVar.gw > sheet.maxGx) sheet.maxGx = bestGx + bestVar.gw;
+        if (bestGy + bestVar.gh > sheet.maxGy) sheet.maxGy = bestGy + bestVar.gh;
+
+        sheet.placements.push({
+          partId: inst.partId,
+          name: inst.name,
+          color: inst.color,
+          area: inst.area,
+          gx: bestGx,
+          gy: bestGy,
+          gw: bestVar.gw,
+          gh: bestVar.gh,
+          nfpHaloPoints: bestVar.nfpHaloPoints,
+          x: sheetBrim + bestGx * cellSize,
+          y: sheetBrim + bestGy * cellSize,
+          width: bestVar.width,
+          height: bestVar.height,
+          angleDeg: bestVar.angleDeg,
+          loops: bestVar.loops,
+          qcStatus: 'PASS',
+          qcMessages: [],
+          minClearance: Infinity
+        });
+        break;
+      }
+    }
+  }
+
+  return sheets;
+}
+
+function evaluateSolutionFitness(sheets) {
+  if (sheets.length === 0) return Infinity;
+  const lastSheet = sheets[sheets.length - 1];
+  let maxX = 0, maxY = 0, gravitySum = 0;
+  for (const pl of lastSheet.placements) {
+    if (pl.gx + pl.gw > maxX) maxX = pl.gx + pl.gw;
+    if (pl.gy + pl.gh > maxY) maxY = pl.gy + pl.gh;
+    gravitySum += (pl.gx + pl.gy) * 0.01;
+  }
+  return (sheets.length - 1) * 1e6 + (maxX * 150) + (maxY * 40) + gravitySum;
+}
+
+function orderCrossoverOX1(parentA, parentB) {
+  const len = parentA.length;
+  if (len <= 2) return parentA.map(g => ({ ...g }));
+  const start = Math.floor(Math.random() * len);
+  const end = start + Math.floor(Math.random() * (len - start));
+  const child = new Array(len).fill(null);
+  const usedIds = new Set();
+
+  for (let i = start; i <= end; i++) {
+    child[i] = { ...parentA[i] };
+    usedIds.add(parentA[i].uid);
+  }
+  let cur = (end + 1) % len;
+  for (let i = 0; i < len; i++) {
+    const cand = parentB[(end + 1 + i) % len];
+    if (!usedIds.has(cand.uid)) {
+      child[cur] = { ...cand };
+      cur = (cur + 1) % len;
+    }
+  }
+  return child;
+}
+
+async function runNestingEngine(parts, config, onProgress) {
+  const { sheetWidth, sheetHeight, sheetBrim, partSpacing, rotSteps, cellSize, model, gaGenerations, gaPopulation } = config;
+
+  const usableW = sheetWidth - 2 * sheetBrim;
+  const usableH = sheetHeight - 2 * sheetBrim;
+  if (usableW <= 10 || usableH <= 10) {
+    throw new Error('Sheet Brim is too large for the specified Sheet dimensions.');
+  }
+
+  const sheetCols = Math.floor(usableW / cellSize);
+  const sheetRows = Math.floor(usableH / cellSize);
+  const spacingRadiusPx = Math.ceil(partSpacing / cellSize) + (partSpacing > 0 ? 1 : 0);
+
+  const partCache = new Map();
+  let pIdx = 0;
+  for (const part of parts) {
+    pIdx++;
+    const degStep = (360 / rotSteps).toFixed(1);
+    onProgress((pIdx / parts.length) * 22, `Precomputing ${rotSteps} orientations (${degStep} deg) for ${part.name}...`);
+    await new Promise(r => setTimeout(r, 0));
+
+    // When rotSteps is high (e.g. up to 360 steps = 1°), evaluate exact vector bounding boxes for all 360 angles
+    // and select the most distinct / compact orientations to rasterize so 1-degree precision runs smoothly
+    const candidateAngles = [];
+    const seenFootprints = new Set();
+
+    for (let s = 0; s < rotSteps; s++) {
+      const angle = (s * 2 * Math.PI) / rotSteps;
+      const rot = rotateAndNormalizeLoops(part.loops, angle);
+      if (rot.width <= usableW && rot.height <= usableH) {
+        const fpKey = `${rot.width.toFixed(1)}_${rot.height.toFixed(1)}_${rot.loops[0][0].x.toFixed(1)}`;
+        if (rotSteps > 12 && seenFootprints.has(fpKey)) continue;
+        seenFootprints.add(fpKey);
+        candidateAngles.push({
+          angle,
+          angleDeg: Number(((angle * 180) / Math.PI).toFixed(2)),
+          rot,
+          bboxArea: rot.width * rot.height
+        });
+      }
+    }
+
+    // If more than 72 unique footprints exist, keep the 48 tightest bounding-box angles + 24 evenly spaced angles
+    let selectedAngles = candidateAngles;
+    if (candidateAngles.length > 72) {
+      const byTightness = [...candidateAngles].sort((a, b) => a.bboxArea - b.bboxArea).slice(0, 48);
+      const chosenSet = new Set(byTightness);
+      const stride = Math.max(1, Math.floor(candidateAngles.length / 24));
+      for (let i = 0; i < candidateAngles.length; i += stride) chosenSet.add(candidateAngles[i]);
+      selectedAngles = Array.from(chosenSet);
+    }
+
+    const variations = [];
+    for (let i = 0; i < selectedAngles.length; i++) {
+      if (i % 24 === 0 && i > 0) await new Promise(r => setTimeout(r, 0));
+      const ca = selectedAngles[i];
+      const rast = rasterizeVariation(ca.rot.loops, ca.rot.width, ca.rot.height, cellSize, spacingRadiusPx);
+      variations.push({
+        angleDeg: ca.angleDeg,
+        ...rast
+      });
+    }
+    partCache.set(part.id, variations);
+  }
+
+  const baseInstances = [];
+  for (const part of parts) {
+    const qty = Math.max(0, parseInt(part.quantity, 10) || 0);
+    for (let i = 0; i < qty; i++) {
+      baseInstances.push({
+        uid: `${part.id}_${i}`,
+        partId: part.id,
+        name: part.name,
+        color: part.color,
+        area: part.area,
+        perimeter: part.width + part.height,
+        maxDim: Math.max(part.width, part.height)
+      });
+    }
+  }
+
+  let bestSheets = [];
+
+  if (model === 'genetic' || model === 'hybrid') {
+    const gens = Math.max(2, Math.min(30, gaGenerations || 5));
+    const popSize = Math.max(4, Math.min(24, gaPopulation || 6));
+    let population = [];
+
+    const areaSorted = [...baseInstances].sort((a, b) => (b.area - a.area) || (b.maxDim - a.maxDim))
+      .map(inst => ({ ...inst, preferredVarIdx: 0 }));
+    population.push(areaSorted);
+
+    const dimSorted = [...baseInstances].sort((a, b) => (b.maxDim - a.maxDim) || (b.area - a.area))
+      .map(inst => ({ ...inst, preferredVarIdx: 1 }));
+    population.push(dimSorted);
+
+    while (population.length < popSize) {
+      const shuffled = [...baseInstances].map(inst => ({
+        ...inst,
+        preferredVarIdx: Math.floor(Math.random() * Math.max(1, rotSteps))
+      }));
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        if (Math.random() < 0.65) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+      }
+      population.push(shuffled);
+    }
+
+    let bestFitness = Infinity;
+    const innerMode = model === 'hybrid' ? 'hybrid' : 'genetic';
+
+    for (let g = 0; g < gens; g++) {
+      const scoredPop = [];
+      for (let p = 0; p < population.length; p++) {
+        const pct = 22 + ((g * population.length + p) / (gens * population.length)) * 66;
+        onProgress(pct, `${MODEL_DESCRIPTIONS[model].short}: Generation ${g + 1} of ${gens}`);
+        await new Promise(r => setTimeout(r, 0));
+
+        const candidateSheets = executePlacementPass(population[p], partCache, config, innerMode);
+        const fit = evaluateSolutionFitness(candidateSheets);
+        scoredPop.push({ chrom: population[p], fit });
+
+        if (fit < bestFitness) {
+          bestFitness = fit;
+          bestSheets = candidateSheets;
+        }
+      }
+
+      scoredPop.sort((a, b) => a.fit - b.fit);
+      const nextPop = [scoredPop[0].chrom, scoredPop[1].chrom];
+
+      while (nextPop.length < popSize) {
+        const p1 = scoredPop[Math.floor(Math.random() * Math.min(3, scoredPop.length))].chrom;
+        const p2 = scoredPop[Math.floor(Math.random() * scoredPop.length)].chrom;
+        const child = orderCrossoverOX1(p1, p2);
+
+        if (Math.random() < 0.5 && child.length > 1) {
+          const i1 = Math.floor(Math.random() * child.length);
+          const i2 = Math.floor(Math.random() * child.length);
+          [child[i1], child[i2]] = [child[i2], child[i1]];
+        }
+        for (const gene of child) {
+          if (Math.random() < 0.3) {
+            gene.preferredVarIdx = Math.floor(Math.random() * Math.max(1, rotSteps));
+          }
+        }
+        nextPop.push(child);
+      }
+      population = nextPop;
+    }
+  } else {
+    const ordered = [...baseInstances];
+    if (model === 'heuristic') {
+      ordered.sort((a, b) => (b.perimeter * b.area) - (a.perimeter * a.area));
+    } else {
+      ordered.sort((a, b) => (b.area - a.area) || (b.maxDim - a.maxDim));
+    }
+
+    onProgress(45, `Running ${MODEL_DESCRIPTIONS[model].short}...`);
+    await new Promise(r => setTimeout(r, 10));
+    bestSheets = executePlacementPass(ordered, partCache, config, model);
+  }
+
+  if (model === 'hybrid' || model === 'nfp') {
+    onProgress(91, 'Compacting vector positions...');
+    await new Promise(r => setTimeout(r, 10));
+    for (const sheet of bestSheets) {
+      runVectorCompactionPass(sheet, config);
+    }
+  }
+
+  onProgress(96, 'Verifying part clearances and brim boundaries...');
+  await new Promise(r => setTimeout(r, 15));
+  for (const sheet of bestSheets) {
+    runInfringementCheck(sheet, config);
+  }
+
+  onProgress(100, 'Complete');
+  return bestSheets;
+}
+
+/**
+ * ============================================================================
+ * 7. EXPORT TO LAYERED DXF, SVG & MULTI-SHEET PKZIP ARCHIVE
+ * ============================================================================
+ */
+function exportSheetToDXF(sheet, config) {
+  const { sheetWidth, sheetHeight, sheetBrim } = config;
+  const lines = [];
+  const push = (code, val) => { lines.push(String(code), String(val)); };
+
+  push(0, 'SECTION');
+  push(2, 'ENTITIES');
+
+  const writeClosedPoly = (pts, layer, colorCode) => {
+    push(0, 'LWPOLYLINE');
+    push(8, layer);
+    push(62, colorCode);
+    push(90, pts.length);
+    push(70, 1);
+    for (const p of pts) {
+      push(10, p.x.toFixed(4));
+      push(20, p.y.toFixed(4));
+    }
+  };
+
+  writeClosedPoly([
+    { x: 0, y: 0 }, { x: sheetWidth, y: 0 },
+    { x: sheetWidth, y: sheetHeight }, { x: 0, y: sheetHeight }
+  ], 'SHEET_BORDER', 7);
+
+  if (sheetBrim > 0) {
+    writeClosedPoly([
+      { x: sheetBrim, y: sheetBrim },
+      { x: sheetWidth - sheetBrim, y: sheetBrim },
+      { x: sheetWidth - sheetBrim, y: sheetHeight - sheetBrim },
+      { x: sheetBrim, y: sheetHeight - sheetBrim }
+    ], 'SHEET_BRIM', 2);
+  }
+
+  for (const item of sheet.placements) {
+    for (let i = item.loops.length - 1; i >= 0; i--) {
+      const isOuter = (i === 0);
+      const transformed = item.loops[i].map(p => ({
+        x: item.x + p.x,
+        y: item.y + p.y
+      }));
+      writeClosedPoly(transformed, isOuter ? 'CUT_OUTER' : 'CUT_INNER', isOuter ? 3 : 1);
+    }
+  }
+
+  push(0, 'ENDSEC');
+  push(0, 'EOF');
+  return lines.join('\n');
+}
+
+function exportSheetToSVG(sheet, config) {
+  const { sheetWidth, sheetHeight, sheetBrim } = config;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sheetWidth} ${sheetHeight}" width="${sheetWidth}mm" height="${sheetHeight}mm">\n`;
+  svg += `  <rect x="0" y="0" width="${sheetWidth}" height="${sheetHeight}" fill="#141618" stroke="#e2e8f0" stroke-width="1.5"/>\n`;
+  if (sheetBrim > 0) {
+    svg += `  <rect x="${sheetBrim}" y="${sheetBrim}" width="${sheetWidth - 2 * sheetBrim}" height="${sheetHeight - 2 * sheetBrim}" fill="none" stroke="#eab308" stroke-dasharray="6,4" stroke-width="0.8"/>\n`;
+  }
+  for (const item of sheet.placements) {
+    const strokeCol = item.qcStatus === 'FAIL' ? '#ef4444' : item.qcStatus === 'WARN' ? '#eab308' : '#82cfa0';
+    let d = '';
+    for (const loop of item.loops) {
+      if (loop.length < 3) continue;
+      d += `M ${(item.x + loop[0].x).toFixed(3)} ${(sheetHeight - (item.y + loop[0].y)).toFixed(3)} `;
+      for (let i = 1; i < loop.length; i++) {
+        d += `L ${(item.x + loop[i].x).toFixed(3)} ${(sheetHeight - (item.y + loop[i].y)).toFixed(3)} `;
+      }
+      d += 'Z ';
+    }
+    svg += `  <path d="${d.trim()}" fill="${strokeCol}" fill-opacity="0.28" fill-rule="evenodd" stroke="${strokeCol}" stroke-width="1.2"/>\n`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+/**
+ * Pure JavaScript PKZIP Builder (Zero external libraries required)
+ * Packages multiple files ({ name, content }) into a standard .zip Blob
+ */
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32Bytes(uint8Arr) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < uint8Arr.length; i++) {
+    crc = CRC32_TABLE[(crc ^ uint8Arr[i]) & 0xFF] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function createZipArchiveBlob(files) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const dataBytes = typeof file.content === 'string' ? encoder.encode(file.content) : file.content;
+    const crc = crc32Bytes(dataBytes);
+    const size = dataBytes.length;
+
+    // Local file header (30 bytes + name)
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(localHeader.buffer);
+    lv.setUint32(0, 0x04034b50, true); // Signature
+    lv.setUint16(4, 20, true);         // Version needed (2.0)
+    lv.setUint16(6, 0, true);          // Flags
+    lv.setUint16(8, 0, true);          // Compression (0 = Store)
+    lv.setUint16(10, 0, true);         // Mod time
+    lv.setUint16(12, 0, true);         // Mod date
+    lv.setUint32(14, crc, true);       // CRC-32
+    lv.setUint32(18, size, true);      // Compressed size
+    lv.setUint32(22, size, true);      // Uncompressed size
+    lv.setUint16(26, nameBytes.length, true); // Filename length
+    lv.setUint16(28, 0, true);         // Extra field length
+    localHeader.set(nameBytes, 30);
+
+    localParts.push(localHeader, dataBytes);
+
+    // Central directory header (46 bytes + name)
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(centralHeader.buffer);
+    cv.setUint32(0, 0x02014b50, true); // Central signature
+    cv.setUint16(4, 20, true);         // Version made by
+    cv.setUint16(6, 20, true);         // Version needed
+    cv.setUint16(8, 0, true);          // Flags
+    cv.setUint16(10, 0, true);         // Compression
+    cv.setUint16(12, 0, true);         // Mod time
+    cv.setUint16(14, 0, true);         // Mod date
+    cv.setUint32(16, crc, true);       // CRC-32
+    cv.setUint32(20, size, true);      // Compressed size
+    cv.setUint32(24, size, true);      // Uncompressed size
+    cv.setUint16(28, nameBytes.length, true); // Filename length
+    cv.setUint16(30, 0, true);         // Extra length
+    cv.setUint16(32, 0, true);         // Comment length
+    cv.setUint16(34, 0, true);         // Disk number
+    cv.setUint16(36, 0, true);         // Internal attrs
+    cv.setUint32(38, 0, true);         // External attrs
+    cv.setUint32(42, offset, true);    // Offset of local header
+    centralHeader.set(nameBytes, 46);
+
+    centralParts.push(centralHeader);
+    offset += localHeader.length + size;
+  }
+
+  let centralSize = 0;
+  for (const cp of centralParts) centralSize += cp.length;
+
+  // End of central directory record (22 bytes)
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, offset, true);
+  ev.setUint16(20, 0, true);
+
+  return new Blob([...localParts, ...centralParts, eocd], { type: 'application/zip' });
+}
+
+/**
+ * ============================================================================
+ * 8. APPLICATION STATE & RENDERING
+ * ============================================================================
+ */
+const state = {
+  parts: [],
+  sheets: [],
+  activeSheetIndex: 0,
+  colorMode: 'QC',
+  bomHasUnmatched: false,
+  bomUnmatchedSummary: '',
+  cam: { x: 40, y: 40, zoom: 0.42, isDragging: false, lastX: 0, lastY: 0 }
+};
+
+const canvas = document.getElementById('nestCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = (rect.height - 46) * window.devicePixelRatio;
+  renderViewport();
+}
+window.addEventListener('resize', resizeCanvas);
+
+function fitSheetToViewport() {
+  const sw = parseFloat(document.getElementById('sheetWidth').value) || 2440;
+  const sh = parseFloat(document.getElementById('sheetHeight').value) || 1220;
+  const cw = canvas.width / window.devicePixelRatio;
+  const ch = canvas.height / window.devicePixelRatio;
+  const pad = 52;
+  const scaleX = (cw - pad * 2) / sw;
+  const scaleY = (ch - pad * 2) / sh;
+  state.cam.zoom = Math.max(0.05, Math.min(scaleX, scaleY));
+  state.cam.x = (cw - sw * state.cam.zoom) * 0.5;
+  state.cam.y = (ch - sh * state.cam.zoom) * 0.5;
+  renderViewport();
+}
+
+function drawMiniThumb(thumbCanvas, part) {
+  const tCtx = thumbCanvas.getContext('2d');
+  const w = thumbCanvas.width, h = thumbCanvas.height;
+  tCtx.clearRect(0, 0, w, h);
+  const pad = 4;
+  const scale = Math.min((w - pad * 2) / Math.max(1, part.width), (h - pad * 2) / Math.max(1, part.height));
+  const ox = (w - part.width * scale) / 2, oy = (h - part.height * scale) / 2;
+
+  tCtx.save();
+  tCtx.beginPath();
+  for (const loop of part.loops) {
+    if (loop.length < 3) continue;
+    tCtx.moveTo(ox + loop[0].x * scale, h - (oy + loop[0].y * scale));
+    for (let i = 1; i < loop.length; i++) {
+      tCtx.lineTo(ox + loop[i].x * scale, h - (oy + loop[i].y * scale));
+    }
+    tCtx.closePath();
+  }
+  const strokeCol = part.bomUnmatched ? '#ef4444' : part.color;
+  tCtx.fillStyle = strokeCol + '35';
+  tCtx.fill('evenodd');
+  tCtx.strokeStyle = strokeCol;
+  tCtx.lineWidth = 1.2;
+  tCtx.stroke();
+  tCtx.restore();
+}
+
+function renderPartsList() {
+  const container = document.getElementById('partsList');
+  document.getElementById('partTypeCount').textContent = state.parts.length;
+  const totalInst = state.parts.reduce((acc, p) => acc + (parseInt(p.quantity, 10) || 0), 0);
+  const totalEntities = state.parts.reduce((acc, p) => acc + p.loops.length * (parseInt(p.quantity, 10) || 0), 0);
+  document.getElementById('totalInstanceCount').textContent = `${totalInst} parts`;
+  document.getElementById('pillPartsEntities').textContent = `${totalInst} parts · ${totalEntities} entities`;
+
+  updateEstimatedTimeUI();
+
+  if (state.parts.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 20px 10px; color: var(--text-muted); font-size: 0.78rem;">
+        No DXF parts loaded yet.
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = '';
+  for (const part of state.parts) {
+    const row = document.createElement('div');
+    row.className = 'part-row' + (part.bomUnmatched ? ' unmatched-part' : '');
+
+    const thumb = document.createElement('canvas');
+    thumb.className = 'part-thumb';
+    thumb.width = 36;
+    thumb.height = 36;
+    drawMiniThumb(thumb, part);
+
+    const meta = document.createElement('div');
+    meta.className = 'part-info';
+    const holesCount = Math.max(0, part.loops.length - 1);
+    const unmatchedBadge = part.bomUnmatched
+      ? `<span class="unmatched-badge" title="Not found in BOM">UNMATCHED</span>`
+      : '';
+
+    meta.innerHTML = `
+      <div class="part-title">
+        <span title="${part.name}" style="${part.bomUnmatched ? 'color:#fca5a5;' : ''}">${part.name}</span>
+        ${unmatchedBadge}
+      </div>
+      <div class="part-sub" style="${part.bomUnmatched ? 'color:#f87171;' : ''}">
+        ${part.width.toFixed(0)} × ${part.height.toFixed(0)} mm · ${holesCount} hole${holesCount === 1 ? '' : 's'}
+      </div>
+    `;
+
+    const controls = document.createElement('div');
+    controls.className = 'part-actions';
+
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.className = 'qty-field';
+    qtyInput.min = '0';
+    qtyInput.max = '999';
+    qtyInput.value = part.quantity;
+    if (part.bomUnmatched) qtyInput.style.borderColor = '#ef4444';
+    qtyInput.addEventListener('change', (e) => {
+      part.quantity = Math.max(0, parseInt(e.target.value, 10) || 0);
+      renderPartsList();
+    });
+
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn-del';
+    btnDel.textContent = 'Remove';
+    btnDel.addEventListener('click', () => {
+      state.parts = state.parts.filter(p => p.id !== part.id);
+      renderPartsList();
+    });
+
+    controls.appendChild(qtyInput);
+    controls.appendChild(btnDel);
+
+    row.appendChild(thumb);
+    row.appendChild(meta);
+    row.appendChild(controls);
+    container.appendChild(row);
+  }
+}
+
+function updateStatsAndTabs() {
+  const sheetW = parseFloat(document.getElementById('sheetWidth').value) || 2440;
+  const sheetH = parseFloat(document.getElementById('sheetHeight').value) || 1220;
+  const partSpacing = parseFloat(document.getElementById('partSpacing').value) || 0;
+  const sheetArea = sheetW * sheetH;
+
+  const tabsEl = document.getElementById('sheetTabs');
+  tabsEl.innerHTML = '';
+
+  if (state.sheets.length === 0) {
+    document.getElementById('sumPartsPlaced').textContent = '0 / 0';
+    document.getElementById('sumUtilization').textContent = '0.0% (sheet) · 0.0% (bbox)';
+    document.getElementById('sumWastedArea').textContent = '0.0 mm²';
+    document.getElementById('sumBoundingBox').textContent = '0.00 × 0.00 mm';
+    document.getElementById('sumUtilBar').style.width = '0%';
+    document.getElementById('rightStatSheets').textContent = '0';
+    document.getElementById('rightStatGap').textContent = '--';
+    document.getElementById('rightStatInfringements').textContent = '0';
+    document.getElementById('btnExportDXF').disabled = true;
+    document.getElementById('btnExportSVG').disabled = true;
+    document.getElementById('btnExportZIP').disabled = true;
+    document.getElementById('zipBtnLabel').textContent = 'ZIP';
+    document.getElementById('btnRunQC').disabled = true;
+    updateEstimatedTimeUI();
+    return;
+  }
+
+  document.getElementById('btnExportDXF').disabled = false;
+  document.getElementById('btnExportSVG').disabled = false;
+  document.getElementById('btnExportZIP').disabled = false;
+  document.getElementById('zipBtnLabel').textContent = `ZIP (${state.sheets.length})`;
+  document.getElementById('btnRunQC').disabled = false;
+
+  const totalRequested = state.parts.reduce((s, p) => s + (parseInt(p.quantity, 10) || 0), 0);
+  const totalPlaced = state.sheets.reduce((s, sh) => s + sh.placements.length, 0);
+
+  const activeSheet = state.sheets[state.activeSheetIndex] || state.sheets[0];
+  let usedArea = 0;
+  let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+
+  for (const pl of activeSheet.placements) {
+    usedArea += pl.area;
+    if (pl.x < minX) minX = pl.x;
+    if (pl.y < minY) minY = pl.y;
+    if (pl.x + pl.width > maxX) maxX = pl.x + pl.width;
+    if (pl.y + pl.height > maxY) maxY = pl.y + pl.height;
+  }
+
+  const bboxW = activeSheet.placements.length > 0 ? (maxX - minX) : 0;
+  const bboxH = activeSheet.placements.length > 0 ? (maxY - minY) : 0;
+  const utilPct = (usedArea / sheetArea) * 100;
+  const bboxPct = (bboxW > 0 && bboxH > 0) ? Math.min(100.0, (usedArea / (bboxW * bboxH)) * 100) : 0;
+  const wastedArea = Math.max(0, sheetArea - usedArea);
+
+  document.getElementById('sumPartsPlaced').textContent = `${totalPlaced} / ${totalRequested}`;
+  document.getElementById('sumUtilization').textContent = `${utilPct.toFixed(1)}% (sheet) · ${bboxPct.toFixed(1)}% (bbox)`;
+  document.getElementById('sumWastedArea').textContent = `${wastedArea.toFixed(1)} mm²`;
+  document.getElementById('sumBoundingBox').textContent = `${bboxW.toFixed(2)} × ${bboxH.toFixed(2)} mm`;
+  document.getElementById('sumUtilBar').style.width = `${Math.min(100, Math.max(2, utilPct))}%`;
+
+  const qc = activeSheet.qcSummary || { passCount: 0, warnCount: 0, failCount: 0, minGap: Infinity };
+  document.getElementById('rightStatSheets').textContent = String(state.sheets.length);
+  document.getElementById('rightStatGap').textContent = isFinite(qc.minGap) ? `${qc.minGap.toFixed(1)} mm` : 'N/A';
+  document.getElementById('rightStatInfringements').textContent = String(qc.failCount);
+  document.getElementById('rightStatInfringements').style.color = qc.failCount > 0 ? '#ef4444' : qc.warnCount > 0 ? '#eab308' : '#a3e0ba';
+
+  if (qc.failCount > 0) {
+    setTopStatusBar('error', 'INFRINGEMENT ERROR', `${qc.failCount} part overlap or sheet brim infringement(s) detected on Sheet ${activeSheet.index}.`);
+  } else if (totalPlaced < totalRequested) {
+    setTopStatusBar('error', 'PLACEMENT INCOMPLETE', `${totalRequested - totalPlaced} part(s) exceed usable sheet dimensions.`);
+  } else if (state.bomHasUnmatched) {
+    setTopStatusBar('concern', 'CONCERN', `All ${totalPlaced} parts placed, but BOM has unmatched items: ${state.bomUnmatchedSummary}`);
+  } else if (qc.warnCount > 0) {
+    setTopStatusBar('concern', 'CONCERN', `${qc.warnCount} part(s) have clearance tighter than target ${partSpacing} mm spacing (Min gap: ${qc.minGap.toFixed(1)} mm).`);
+  } else {
+    setTopStatusBar('ok', 'PERFECT', `All parts fit within the selected sheet. ${totalPlaced} of ${totalRequested} parts placed successfully.`);
+  }
+
+  state.sheets.forEach((sh, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'sheet-tab' + (idx === state.activeSheetIndex ? ' active' : '');
+    btn.textContent = `Sheet ${idx + 1} (${sh.placements.length})`;
+    btn.addEventListener('click', () => {
+      state.activeSheetIndex = idx;
+      updateStatsAndTabs();
+      renderViewport();
+    });
+    tabsEl.appendChild(btn);
+  });
+}
+
+function renderViewport() {
+  const dpr = window.devicePixelRatio || 1;
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const cw = canvas.width / dpr, ch = canvas.height / dpr;
+  ctx.fillStyle = '#111315';
+  ctx.fillRect(0, 0, cw, ch);
+
+  const sheetW = parseFloat(document.getElementById('sheetWidth').value) || 2440;
+  const sheetH = parseFloat(document.getElementById('sheetHeight').value) || 1220;
+  const sheetBrim = parseFloat(document.getElementById('sheetBrim').value) || 0;
+
+  ctx.translate(state.cam.x, state.cam.y);
+  ctx.scale(state.cam.zoom, state.cam.zoom);
+
+  ctx.translate(0, sheetH);
+  ctx.scale(1, -1);
+
+  // 1. Sheet Background & Subtle Grid
+  ctx.fillStyle = '#171a1d';
+  ctx.fillRect(0, 0, sheetW, sheetH);
+
+  ctx.strokeStyle = '#22262a';
+  ctx.lineWidth = 1 / state.cam.zoom;
+  const gridStep = 100;
+  ctx.beginPath();
+  for (let x = gridStep; x < sheetW; x += gridStep) { ctx.moveTo(x, 0); ctx.lineTo(x, sheetH); }
+  for (let y = gridStep; y < sheetH; y += gridStep) { ctx.moveTo(0, y); ctx.lineTo(sheetW, y); }
+  ctx.stroke();
+
+  // 2. Sheet Border
+  ctx.strokeStyle = '#383f47';
+  ctx.lineWidth = 1.5 / state.cam.zoom;
+  ctx.strokeRect(0, 0, sheetW, sheetH);
+
+  // 3. Sheet Brim
+  if (sheetBrim > 0 && sheetW > 2 * sheetBrim && sheetH > 2 * sheetBrim) {
+    ctx.save();
+    ctx.strokeStyle = '#eab308';
+    ctx.lineWidth = 1.2 / state.cam.zoom;
+    ctx.setLineDash([7 / state.cam.zoom, 5 / state.cam.zoom]);
+    ctx.strokeRect(sheetBrim, sheetBrim, sheetW - 2 * sheetBrim, sheetH - 2 * sheetBrim);
+    ctx.restore();
+  }
+
+  // 4. Nested Parts
+  const activeSheet = state.sheets[state.activeSheetIndex];
+  if (activeSheet) {
+    for (const item of activeSheet.placements) {
+      ctx.save();
+      ctx.translate(item.x, item.y);
+
+      let primaryColor = item.color;
+      let fillAlpha = '28';
+      if (state.colorMode === 'QC') {
+        if (item.qcStatus === 'FAIL') { primaryColor = '#ef4444'; fillAlpha = '48'; }
+        else if (item.qcStatus === 'WARN') { primaryColor = '#eab308'; fillAlpha = '38'; }
+        else { primaryColor = '#82cfa0'; fillAlpha = '26'; }
+      }
+
+      ctx.beginPath();
+      for (const loop of item.loops) {
+        if (loop.length < 3) continue;
+        ctx.moveTo(loop[0].x, loop[0].y);
+        for (let i = 1; i < loop.length; i++) ctx.lineTo(loop[i].x, loop[i].y);
+        ctx.closePath();
+      }
+      ctx.fillStyle = primaryColor + fillAlpha;
+      ctx.fill('evenodd');
+
+      const outer = item.loops[0];
+      if (outer && outer.length >= 3) {
+        ctx.beginPath();
+        ctx.moveTo(outer[0].x, outer[0].y);
+        for (let i = 1; i < outer.length; i++) ctx.lineTo(outer[i].x, outer[i].y);
+        ctx.closePath();
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = (item.qcStatus === 'FAIL' ? 2.4 : 1.5) / state.cam.zoom;
+        ctx.stroke();
+      }
+
+      if (item.loops.length > 1) {
+        ctx.save();
+        ctx.strokeStyle = '#a3e0ba';
+        ctx.lineWidth = 1.1 / state.cam.zoom;
+        ctx.setLineDash([4 / state.cam.zoom, 3 / state.cam.zoom]);
+        for (let k = 1; k < item.loops.length; k++) {
+          const hole = item.loops[k];
+          if (hole.length < 3) continue;
+          ctx.beginPath();
+          ctx.moveTo(hole[0].x, hole[0].y);
+          for (let i = 1; i < hole.length; i++) ctx.lineTo(hole[i].x, hole[i].y);
+          ctx.closePath();
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (item.width * state.cam.zoom > 36 && item.height * state.cam.zoom > 20) {
+        ctx.save();
+        ctx.translate(item.width / 2, item.height / 2);
+        ctx.scale(1, -1);
+        ctx.fillStyle = '#eef2f5';
+        const fontSize = Math.min(12, Math.max(9, Math.min(item.width, item.height) * 0.075));
+        ctx.font = `600 ${fontSize / state.cam.zoom * Math.min(1, state.cam.zoom * 1.4)}px 'Inter', sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const rotLabel = item.angleDeg ? ` (${item.angleDeg}°)` : '';
+        ctx.fillText(`${item.name}${rotLabel}`, 0, -5 / state.cam.zoom);
+
+        ctx.font = `500 ${Math.max(8.5, fontSize * 0.78) / state.cam.zoom * Math.min(1, state.cam.zoom * 1.4)}px 'JetBrains Mono', monospace`;
+        ctx.fillStyle = item.qcStatus === 'FAIL' ? '#fca5a5' : item.qcStatus === 'WARN' ? '#fde047' : '#a3e0ba';
+        const subText = item.qcMessages.length > 0
+          ? item.qcMessages[0]
+          : isFinite(item.minClearance)
+            ? `Gap: ${item.minClearance.toFixed(1)} mm`
+            : 'PASS';
+        ctx.fillText(subText, 0, 9 / state.cam.zoom);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    if (activeSheet.conflicts && activeSheet.conflicts.length > 0) {
+      ctx.save();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2.2 / state.cam.zoom;
+      for (const c of activeSheet.conflicts) {
+        ctx.beginPath();
+        ctx.moveTo(c.ax, c.ay);
+        ctx.lineTo(c.bx, c.by);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  ctx.restore();
+}
+
+/**
+ * ============================================================================
+ * 9. UI EVENT HANDLERS
+ * ============================================================================
+ */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) handleFiles(e.target.files);
+  fileInput.value = '';
+});
+
+async function handleFiles(fileList) {
+  let loaded = 0;
+  let lastFileName = '';
+  for (const file of fileList) {
+    if (!file.name.toLowerCase().endsWith('.dxf')) continue;
+    try {
+      const text = await file.text();
+      const part = parseDXF(text, file.name, state.parts.length + loaded);
+      part.quantity = 1;
+      state.parts.push(part);
+      loaded++;
+      lastFileName = file.name;
+    } catch (err) {
+      logDebug(`Error parsing ${file.name}: ${err.message}`, 'err');
+      setTopStatusBar('error', 'DXF PARSE ERROR', `Failed to parse ${file.name}: ${err.message}`);
+    }
+  }
+  if (loaded > 0) {
+    document.getElementById('uploadHintText').textContent = loaded === 1 ? lastFileName : `${loaded} DXF files loaded`;
+    setTopStatusBar('ok', 'FILES LOADED', `Loaded ${loaded} DXF file(s) with default quantity set to 1.`);
+  }
+  renderPartsList();
+}
+
+// Rotation Slider & Preset Chips (1 to 360 steps = 1° resolution)
+const rotSlider = document.getElementById('rotSteps');
+const rotSliderLabel = document.getElementById('rotSliderLabel');
+const presetChips = document.querySelectorAll('.preset-chip');
+
+function syncRotationSliderUI() {
+  const steps = parseInt(rotSlider.value, 10) || 1;
+  const deg = (360 / steps);
+  const degFormatted = deg % 1 === 0 ? `${deg.toFixed(0)}°` : `${deg.toFixed(2)}°`;
+  rotSliderLabel.textContent = steps === 1 ? `1 step · 0° Lock` : `${steps} steps · ${degFormatted}`;
+
+  presetChips.forEach(chip => {
+    chip.classList.toggle('active', parseInt(chip.dataset.steps, 10) === steps);
+  });
+  updateEstimatedTimeUI();
+}
+
+rotSlider.addEventListener('input', syncRotationSliderUI);
+presetChips.forEach(chip => {
+  chip.addEventListener('click', () => {
+    rotSlider.value = chip.dataset.steps;
+    syncRotationSliderUI();
+  });
+});
+
+// Summary / Debug Panel Tab Switcher
+document.getElementById('tabBtnStats').addEventListener('click', () => {
+  document.getElementById('tabBtnStats').classList.add('active');
+  document.getElementById('tabBtnDebug').classList.remove('active');
+  document.getElementById('summaryMetricsView').style.display = 'flex';
+  document.getElementById('summaryDebugView').style.display = 'none';
+});
+
+document.getElementById('tabBtnDebug').addEventListener('click', () => {
+  document.getElementById('tabBtnDebug').classList.add('active');
+  document.getElementById('tabBtnStats').classList.remove('active');
+  document.getElementById('summaryMetricsView').style.display = 'none';
+  document.getElementById('summaryDebugView').style.display = 'block';
+});
+
+// "Rst Qty" Button
+document.getElementById('btnResetQty1').addEventListener('click', () => {
+  for (const part of state.parts) {
+    part.quantity = 1;
+    part.bomUnmatched = false;
+  }
+  state.bomHasUnmatched = false;
+  state.bomUnmatchedSummary = '';
+  const bomBox = document.getElementById('bomBox');
+  const statusEl = document.getElementById('bomStatus');
+  bomBox.classList.remove('bom-error');
+  statusEl.className = 'bom-feedback';
+  statusEl.textContent = 'All part quantities reset to 1.';
+  logDebug('Reset all part quantities to 1.', 'ok');
+  setTopStatusBar('ok', 'QUANTITY RESET', 'All part quantities have been reset to 1.');
+  renderPartsList();
+});
+
+// BOM Upload & Auto Count
+const bomFileInput = document.getElementById('bomFileInput');
+document.getElementById('btnUploadBOMFile').addEventListener('click', () => bomFileInput.click());
+bomFileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  document.getElementById('bomTextInput').value = text;
+  bomFileInput.value = '';
+  document.getElementById('btnAutoCountBOM').click();
+});
+
+document.getElementById('btnAutoCountBOM').addEventListener('click', () => {
+  const statusEl = document.getElementById('bomStatus');
+  const bomBox = document.getElementById('bomBox');
+
+  if (state.parts.length === 0) {
+    bomBox.classList.add('bom-error');
+    statusEl.className = 'bom-feedback status-unmatched';
+    statusEl.textContent = 'Upload DXF parts first before matching BOM quantities.';
+    setTopStatusBar('error', 'BOM ERROR', 'No DXF files are loaded to match against the BOM.');
+    logDebug('BOM Auto-Count aborted: 0 DXF parts loaded.', 'err');
+    return;
+  }
+
+  const bomText = document.getElementById('bomTextInput').value;
+  const res = parseBOMAndAutoCount(bomText, state.parts);
+  renderPartsList();
+
+  const hasUnmatched = res.unmatchedBomRows.length > 0 || res.unmatchedParts.length > 0 || res.matchedFiles === 0;
+  state.bomHasUnmatched = hasUnmatched;
+
+  if (hasUnmatched) {
+    bomBox.classList.add('bom-error');
+    statusEl.className = 'bom-feedback status-unmatched';
+    const issues = [];
+    if (res.unmatchedBomRows.length > 0) issues.push(`Missing DXF: ${res.unmatchedBomRows.join(', ')}`);
+    if (res.unmatchedParts.length > 0) issues.push(`Not in BOM: ${res.unmatchedParts.join(', ')}`);
+    if (issues.length === 0) issues.push('No matching DXF filenames found in BOM.');
+
+    state.bomUnmatchedSummary = issues.join(' | ');
+    statusEl.innerHTML = issues.join('<br/>');
+    setTopStatusBar('error', 'BOM UNMATCHED', `BOM mismatch detected: ${state.bomUnmatchedSummary}`);
+    logDebug(`BOM Unmatch: ${state.bomUnmatchedSummary}`, 'err');
+  } else {
+    state.bomUnmatchedSummary = '';
+    bomBox.classList.remove('bom-error');
+    statusEl.className = 'bom-feedback status-ok';
+    statusEl.textContent = `Matched all ${res.matchedFiles} DXF files (${res.totalInstances} total parts).`;
+    setTopStatusBar('ok', 'BOM MATCHED', `Successfully matched ${res.matchedFiles} DXF files (${res.totalInstances} total parts).`);
+    logDebug(`BOM matched ${res.matchedFiles} DXF files (${res.totalInstances} total parts).`, 'ok');
+  }
+});
+
+// Model Selection Listener
+document.getElementById('nestingModel').addEventListener('change', (e) => {
+  const modelKey = e.target.value;
+  const info = MODEL_DESCRIPTIONS[modelKey] || MODEL_DESCRIPTIONS.hybrid;
+  document.getElementById('modelSpeedTag').textContent = info.tag;
+  document.getElementById('modelDescription').textContent = info.text;
+  document.getElementById('evoParamsRow').style.display = info.usesEvo ? 'grid' : 'none';
+  document.getElementById('activeLayoutBadge').textContent = `${info.tag} LAYOUT`;
+  updateEstimatedTimeUI();
+  logDebug(`Selected algorithm: ${info.short}`);
+});
+
+['gaGenerations', 'gaPopulation'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateEstimatedTimeUI);
+});
+
+// Load Sample Batch + BOM
+document.getElementById('btnLoadSamples').addEventListener('click', () => {
+  state.parts = buildSampleMDFBatch();
+  document.getElementById('uploadHintText').textContent = '4 sample DXF files loaded';
+  document.getElementById('bomTextInput').value =
+`Part Name,Material,Qty
+Side_Rail_12mm,MDF 12mm,1
+MB5 MDF 12mm,MDF 12mm,2
+MB6 MDF 12mm,MDF 12mm,2
+L_Support_MDF_12mm,MDF 12mm,2`;
+
+  logDebug('Loaded sample MDF batch (4 unique DXF parts).', 'ok');
+  renderPartsList();
+  document.getElementById('btnAutoCountBOM').click();
+  document.getElementById('btnRunNest').click();
+});
+
+// Toggle Color Mode
+document.getElementById('btnToggleColorMode').addEventListener('click', (e) => {
+  state.colorMode = state.colorMode === 'QC' ? 'PART' : 'QC';
+  e.target.textContent = `View: ${state.colorMode === 'QC' ? 'QC Status' : 'Part Colors'}`;
+  renderViewport();
+});
+
+// Re-Run QC Check
+document.getElementById('btnRunQC').addEventListener('click', () => {
+  const config = {
+    sheetWidth: parseFloat(document.getElementById('sheetWidth').value) || 2440,
+    sheetHeight: parseFloat(document.getElementById('sheetHeight').value) || 1220,
+    sheetBrim: parseFloat(document.getElementById('sheetBrim').value) || 0,
+    partSpacing: parseFloat(document.getElementById('partSpacing').value) || 0,
+    cellSize: parseFloat(document.getElementById('nestResolution').value) || 2.5
+  };
+  for (const sheet of state.sheets) runInfringementCheck(sheet, config);
+  state.colorMode = 'QC';
+  document.getElementById('btnToggleColorMode').textContent = 'View: QC Status';
+  logDebug('Completed manual QC verification check.', 'ok');
+  updateStatsAndTabs();
+  renderViewport();
+});
+
+// Clear Parts
+document.getElementById('btnClearParts').addEventListener('click', () => {
+  state.parts = [];
+  state.sheets = [];
+  state.activeSheetIndex = 0;
+  state.bomHasUnmatched = false;
+  state.bomUnmatchedSummary = '';
+  document.getElementById('uploadHintText').textContent = 'Drop .dxf files here (Default Qty = 1)';
+  document.getElementById('bomBox').classList.remove('bom-error');
+  document.getElementById('bomStatus').className = 'bom-feedback';
+  document.getElementById('bomStatus').textContent = 'Unmatched BOM items or missing DXF files highlight in red.';
+  setTopStatusBar('ok', 'READY', 'Workspace cleared.');
+  logDebug('Cleared all parts and nested sheets.');
+  renderPartsList();
+  updateStatsAndTabs();
+  renderViewport();
+});
+
+// Sheet Presets
+document.getElementById('sheetPreset').addEventListener('change', (e) => {
+  if (e.target.value === 'custom') return;
+  const [w, h] = e.target.value.split(',').map(Number);
+  document.getElementById('sheetWidth').value = w;
+  document.getElementById('sheetHeight').value = h;
+  updateStatsAndTabs();
+  updateEstimatedTimeUI();
+  fitSheetToViewport();
+});
+
+['sheetWidth', 'sheetHeight', 'sheetBrim', 'partSpacing', 'nestResolution'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (state.sheets.length > 0) {
+      const config = {
+        sheetWidth: parseFloat(document.getElementById('sheetWidth').value) || 2440,
+        sheetHeight: parseFloat(document.getElementById('sheetHeight').value) || 1220,
+        sheetBrim: parseFloat(document.getElementById('sheetBrim').value) || 0,
+        partSpacing: parseFloat(document.getElementById('partSpacing').value) || 0,
+        cellSize: parseFloat(document.getElementById('nestResolution').value) || 2.5
+      };
+      for (const sheet of state.sheets) runInfringementCheck(sheet, config);
+    }
+    updateStatsAndTabs();
+    updateEstimatedTimeUI();
+    renderViewport();
+  });
+});
+
+// Run Nesting ("Start Nesting" Button at Bottom-Right)
+document.getElementById('btnRunNest').addEventListener('click', async () => {
+  if (state.parts.length === 0) {
+    setTopStatusBar('error', 'NO PARTS LOADED', 'Upload at least one DXF file or click "Load Sample Batch" first.');
+    logDebug('Nesting aborted: No DXF parts loaded.', 'err');
+    return;
+  }
+
+  const btn = document.getElementById('btnRunNest');
+  const progEl = document.getElementById('progressBar');
+  const selectedModel = document.getElementById('nestingModel').value;
+  const estSec = estimateNestingTimeSeconds();
+
+  btn.disabled = true;
+  btn.textContent = 'Nesting...';
+  document.getElementById('timeCardLabel').textContent = 'Est. / Elapsed';
+
+  const config = {
+    sheetWidth: Math.max(50, parseFloat(document.getElementById('sheetWidth').value) || 2440),
+    sheetHeight: Math.max(50, parseFloat(document.getElementById('sheetHeight').value) || 1220),
+    sheetBrim: Math.max(0, parseFloat(document.getElementById('sheetBrim').value) || 0),
+    partSpacing: Math.max(0, parseFloat(document.getElementById('partSpacing').value) || 0),
+    rotSteps: parseInt(document.getElementById('rotSteps').value, 10) || 4,
+    cellSize: parseFloat(document.getElementById('nestResolution').value) || 2.5,
+    model: selectedModel,
+    gaGenerations: parseInt(document.getElementById('gaGenerations').value, 10) || 5,
+    gaPopulation: parseInt(document.getElementById('gaPopulation').value, 10) || 6
+  };
+
+  logDebug(`Starting ${MODEL_DESCRIPTIONS[selectedModel].short} (${config.rotSteps} steps, est. ~${estSec.toFixed(1)}s)...`);
+
+  try {
+    const startTime = performance.now();
+    state.sheets = await runNestingEngine(state.parts, config, (pct, msg) => {
+      progEl.style.width = `${pct}%`;
+      const curElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+      document.getElementById('rightStatTime').textContent = `${curElapsed}s / ~${estSec.toFixed(1)}s`;
+      setTopStatusBar('ok', 'OPTIMIZING', `${msg} (Est. ~${estSec.toFixed(1)}s)`);
+    });
+    state.activeSheetIndex = 0;
+    state.colorMode = 'QC';
+    document.getElementById('btnToggleColorMode').textContent = 'View: QC Status';
+    const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+    document.getElementById('timeCardLabel').textContent = 'Actual / Est.';
+    document.getElementById('rightStatTime').textContent = `${elapsed}s (~${estSec.toFixed(1)}s)`;
+    logDebug(`Completed in ${elapsed}s (est. ~${estSec.toFixed(1)}s) across ${state.sheets.length} sheet(s).`, 'ok');
+    updateStatsAndTabs();
+    fitSheetToViewport();
+  } catch (err) {
+    setTopStatusBar('error', 'NESTING ERROR', err.message);
+    logDebug(`Error: ${err.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Start Nesting';
+    setTimeout(() => { progEl.style.width = '0%'; }, 600);
+  }
+});
+
+// Download Helpers (SVG, DXF, Multi-Sheet ZIP)
+function downloadBlob(blobOrContent, filename, mime) {
+  const blob = blobOrContent instanceof Blob ? blobOrContent : new Blob([blobOrContent], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnExportDXF').addEventListener('click', () => {
+  const sheet = state.sheets[state.activeSheetIndex];
+  if (!sheet) return;
+  const config = {
+    sheetWidth: parseFloat(document.getElementById('sheetWidth').value) || 2440,
+    sheetHeight: parseFloat(document.getElementById('sheetHeight').value) || 1220,
+    sheetBrim: parseFloat(document.getElementById('sheetBrim').value) || 0
+  };
+  downloadBlob(exportSheetToDXF(sheet, config), `NEXTNEST_Sheet_${sheet.index}.dxf`, 'application/dxf');
+  logDebug(`Exported NEXTNEST_Sheet_${sheet.index}.dxf`, 'ok');
+});
+
+document.getElementById('btnExportSVG').addEventListener('click', () => {
+  const sheet = state.sheets[state.activeSheetIndex];
+  if (!sheet) return;
+  const config = {
+    sheetWidth: parseFloat(document.getElementById('sheetWidth').value) || 2440,
+    sheetHeight: parseFloat(document.getElementById('sheetHeight').value) || 1220,
+    sheetBrim: parseFloat(document.getElementById('sheetBrim').value) || 0
+  };
+  downloadBlob(exportSheetToSVG(sheet, config), `NEXTNEST_Sheet_${sheet.index}.svg`, 'image/svg+xml');
+  logDebug(`Exported NEXTNEST_Sheet_${sheet.index}.svg`, 'ok');
+});
+
+// Multi-Sheet ZIP Export (All DXFs + All SVGs + QC Summary Report)
+document.getElementById('btnExportZIP').addEventListener('click', () => {
+  if (state.sheets.length === 0) return;
+  const config = {
+    sheetWidth: parseFloat(document.getElementById('sheetWidth').value) || 2440,
+    sheetHeight: parseFloat(document.getElementById('sheetHeight').value) || 1220,
+    sheetBrim: parseFloat(document.getElementById('sheetBrim').value) || 0,
+    partSpacing: parseFloat(document.getElementById('partSpacing').value) || 0
+  };
+
+  const zipFiles = [];
+  const reportLines = [
+    'NEXTNEST MULTI-SHEET NESTING & QC REPORT',
+    '========================================',
+    `Sheet Dimensions : ${config.sheetWidth} x ${config.sheetHeight} mm`,
+    `Sheet Brim       : ${config.sheetBrim} mm`,
+    `Part Spacing     : ${config.partSpacing} mm`,
+    `Total Sheets     : ${state.sheets.length}`,
+    ''
+  ];
+
+  for (const sheet of state.sheets) {
+    const dxfName = `NEXTNEST_Sheet_${sheet.index}.dxf`;
+    const svgName = `NEXTNEST_Sheet_${sheet.index}.svg`;
+    zipFiles.push({ name: dxfName, content: exportSheetToDXF(sheet, config) });
+    zipFiles.push({ name: svgName, content: exportSheetToSVG(sheet, config) });
+
+    let usedArea = 0;
+    for (const pl of sheet.placements) usedArea += pl.area;
+    const util = ((usedArea / (config.sheetWidth * config.sheetHeight)) * 100).toFixed(1);
+    const qc = sheet.qcSummary || { passCount: 0, warnCount: 0, failCount: 0 };
+
+    reportLines.push(`Sheet ${sheet.index}: ${sheet.placements.length} parts | Utilization: ${util}% | QC Pass: ${qc.passCount}, Warn: ${qc.warnCount}, Fail: ${qc.failCount}`);
+  }
+
+  zipFiles.push({ name: 'NEXTNEST_QC_Report.txt', content: reportLines.join('\n') });
+
+  const zipBlob = createZipArchiveBlob(zipFiles);
+  downloadBlob(zipBlob, `NEXTNEST_All_Sheets_${state.sheets.length}.zip`, 'application/zip');
+  logDebug(`Exported ZIP archive containing ${state.sheets.length} sheet(s) (DXF + SVG + QC Report).`, 'ok');
+});
+
+// Canvas Pan & Zoom
+canvas.addEventListener('mousedown', (e) => {
+  state.cam.isDragging = true;
+  state.cam.lastX = e.clientX;
+  state.cam.lastY = e.clientY;
+});
+window.addEventListener('mousemove', (e) => {
+  if (!state.cam.isDragging) return;
+  state.cam.x += e.clientX - state.cam.lastX;
+  state.cam.y += e.clientY - state.cam.lastY;
+  state.cam.lastX = e.clientX;
+  state.cam.lastY = e.clientY;
+  renderViewport();
+});
+window.addEventListener('mouseup', () => { state.cam.isDragging = false; });
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.12 : 0.89;
+  const newZoom = Math.max(0.05, Math.min(15, state.cam.zoom * factor));
+  state.cam.x = mx - (mx - state.cam.x) * (newZoom / state.cam.zoom);
+  state.cam.y = my - (my - state.cam.y) * (newZoom / state.cam.zoom);
+  state.cam.zoom = newZoom;
+  renderViewport();
+}, { passive: false });
+
+document.getElementById('btnZoomIn').addEventListener('click', () => {
+  state.cam.zoom = Math.min(15, state.cam.zoom * 1.25);
+  renderViewport();
+});
+document.getElementById('btnZoomOut').addEventListener('click', () => {
+  state.cam.zoom = Math.max(0.05, state.cam.zoom * 0.8);
+  renderViewport();
+});
+document.getElementById('btnFitView').addEventListener('click', fitSheetToViewport);
+
+// Initialize on load
+syncRotationSliderUI();
+resizeCanvas();
+updateStatsAndTabs();
+fitSheetToViewport();
+</script>
+</body>
+</html>
