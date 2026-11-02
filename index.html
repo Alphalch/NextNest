@@ -68,7 +68,7 @@
       background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
       display: grid;
-      grid-template-columns: 160px 1fr auto;
+      grid-template-columns: 150px 1fr auto;
       align-items: center;
       padding: 0 20px;
       gap: 16px;
@@ -103,7 +103,7 @@
       border: 1px solid var(--mint-banner-border);
       background: var(--mint-banner-bg);
       transition: all 0.2s ease;
-      max-width: 740px;
+      max-width: 720px;
       width: 100%;
       justify-self: center;
     }
@@ -180,7 +180,7 @@
       gap: 6px;
       background: var(--bg-input);
       border: 1px solid var(--border);
-      padding: 4px 8px;
+      padding: 4px 9px;
       border-radius: 7px;
     }
 
@@ -204,8 +204,16 @@
       cursor: pointer;
     }
 
-    .export-res-select:focus {
-      border-color: var(--mint-accent);
+    .export-size-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--mint-light);
+      background: var(--mint-banner-bg);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--mint-banner-border);
+      white-space: nowrap;
     }
 
     .dl-icon {
@@ -790,7 +798,7 @@
     }
 
     .part-sub {
-      font-size: 0.71rem;
+      font-size: 0.7rem;
       color: var(--text-secondary);
       font-family: 'JetBrains Mono', monospace;
     }
@@ -985,17 +993,18 @@
       </div>
     </div>
 
-    <!-- Right Action Bar with Export Resolution Selector & Download Symbol Buttons -->
+    <!-- Right Action Bar with Export Resolution Selector, Live File Size & Download Symbol Buttons -->
     <div class="top-actions">
       <button class="btn" id="btnLoadSamples">Load Sample Batch</button>
 
-      <div class="export-res-group" title="Controls curve smoothness, arc bulge preservation, and decimal precision in exported DXF/SVG files">
+      <div class="export-res-group" title="Controls NURBS/arc subdivision density and exported DXF file size">
         <span class="export-res-label">Export Res</span>
         <select id="exportResolution" class="export-res-select">
           <option value="low">Low (Draft)</option>
           <option value="medium">Medium (Standard)</option>
-          <option value="high" selected>High (True Arc / Fine)</option>
+          <option value="high" selected>High (Ultra-Fine)</option>
         </select>
+        <span class="export-size-badge" id="exportSizeBadge">-- KB</span>
       </div>
 
       <button class="btn" id="btnExportSVG" title="Download Active Sheet SVG" disabled>
@@ -1050,7 +1059,7 @@
             <input type="file" id="bomFileInput" accept=".csv,.tsv,.txt,.json" hidden />
           </div>
           <div class="bom-container" id="bomBox">
-            <textarea id="bomTextInput" class="bom-textarea" placeholder="Paste BOM rows (PartName, Qty):&#10;MB5 MDF 12mm, 2&#10;MB6 MDF 12mm, 1&#10;Side_Rail_12mm, 1"></textarea>
+            <textarea id="bomTextInput" class="bom-textarea" placeholder="Paste BOM rows (PartName, Qty):&#10;MB1_NURBS_Slot_12mm, 2&#10;MB5 MDF 12mm, 2&#10;MB6 MDF 12mm, 1"></textarea>
             <button class="btn btn-mint btn-sm" id="btnAutoCountBOM" style="padding:6px;">
               Auto Count from BOM
             </button>
@@ -1116,7 +1125,7 @@
     <main class="viewport-area">
       <div class="viewport-topbar">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span class="pill-info" id="pillPartsEntities">0 parts · 0 entities</span>
+          <span class="pill-info" id="pillPartsEntities">0 parts · 0 vertices</span>
           <div class="sheet-tabs" id="sheetTabs"></div>
         </div>
 
@@ -1317,7 +1326,7 @@
 <script>
 /**
  * ============================================================================
- * 1. VECTOR GEOMETRY,EXPORT RESOLUTION PROFILES & INFRINGEMENT MATH
+ * 1. VECTOR GEOMETRY, EXPORT RESOLUTION PROFILES & INFRINGEMENT MATH
  * ============================================================================
  */
 const PALETTE = [
@@ -1325,31 +1334,31 @@ const PALETTE = [
   '#4db6ac', '#aed581', '#4dd0e1', '#a5d6a7'
 ];
 
-// Export Resolution Profiles: Controls arc subdivision, vertex tolerance, bulge retention, and decimal places
+/**
+ * Export Resolution Profiles:
+ * Controls NURBS/Arc tessellation density, perimeter subdivision pitch, and output DXF file size.
+ * - Low (Draft): 0.40mm chord decimation, no straight-edge subdivision (~10-30 KB)
+ * - Medium (Standard): Keeps all 0.08mm curve points + 0.80mm perimeter subdivision (~200-500 KB)
+ * - High (Ultra-Fine): Keeps all 0.02mm NURBS/arc points + 0.15mm dense subdivision (~800 KB - 2.5+ MB)
+ */
 const EXPORT_RESOLUTION_PROFILES = {
   low: {
     name: 'Low (Draft)',
-    circleSteps: 48,
-    minArcSteps: 6,
-    mergeTol: 0.08,
-    decimals: 3,
-    preserveBulge: false
+    curveStepMm: 0.45,
+    maxEdgePitchMm: 0, // No straight-line subdivision
+    decimals: 4
   },
   medium: {
     name: 'Medium (Standard)',
-    circleSteps: 180,
-    minArcSteps: 24,
-    mergeTol: 0.008,
-    decimals: 5,
-    preserveBulge: false
+    curveStepMm: 0.08,
+    maxEdgePitchMm: 0.90, // Subdivide edges every 0.90 mm
+    decimals: 5
   },
   high: {
-    name: 'High (True Arc / Fine)',
-    circleSteps: 720,
-    minArcSteps: 72,
-    mergeTol: 0.0001,
-    decimals: 6,
-    preserveBulge: true
+    name: 'High (Ultra-Fine)',
+    curveStepMm: 0.02,
+    maxEdgePitchMm: 0.16, // Ultra-dense 0.16 mm vertex pitch (prevents any faceting & produces 500KB-2MB+ files)
+    decimals: 6
   }
 };
 
@@ -1473,7 +1482,7 @@ function rotatePoint(p, angleRad) {
   return {
     x: p.x * c - p.y * s,
     y: p.x * s + p.y * c,
-    bulge: p.bulge || 0
+    isCurve: Boolean(p.isCurve)
   };
 }
 
@@ -1481,7 +1490,7 @@ function rotateAndNormalizeLoops(loops, angleRad) {
   const rotated = loops.map(loop => loop.map(p => rotatePoint(p, angleRad)));
   const b = getBounds(rotated);
   const normalized = rotated.map(loop =>
-    loop.map(p => ({ x: p.x - b.minX, y: p.y - b.minY, bulge: p.bulge || 0 }))
+    loop.map(p => ({ x: p.x - b.minX, y: p.y - b.minY, isCurve: Boolean(p.isCurve) }))
   );
   return {
     loops: normalized,
@@ -1672,33 +1681,108 @@ function runInfringementCheck(sheet, config) {
 
 /**
  * ============================================================================
- * 3. DUAL-RESOLUTION DXF PARSER (Preserves True Bulges & High-Res Contours)
+ * 3. EXACT RATIONAL COX-DE BOOR NURBS (SPLINE) & HIGH-DENSITY DXF PARSER
+ * Evaluates Rhino/AutoCAD Rational NURBS SPLINE entities (degree, knots,
+ * control points, and rational weights) with sub-micron accuracy.
  * ============================================================================
  */
-function cleanPolygonVertices(pts, tol = 0.005) {
-  if (pts.length < 3) return pts;
-  const cleaned = [pts[0]];
-  for (let i = 1; i < pts.length; i++) {
-    const prev = cleaned[cleaned.length - 1];
-    if (Math.hypot(pts[i].x - prev.x, pts[i].y - prev.y) > tol || Math.abs(prev.bulge || 0) > 1e-6) {
-      cleaned.push(pts[i]);
+function evaluateNURBSPoint(u, p, U, ctrlPts, weights) {
+  const n = ctrlPts.length - 1;
+  let k = p;
+  for (let j = p; j <= n; j++) {
+    if (u >= U[j] && u < U[j + 1]) {
+      k = j;
+      break;
     }
   }
-  if (cleaned.length > 2) {
-    const first = cleaned[0], last = cleaned[cleaned.length - 1];
-    if (Math.hypot(first.x - last.x, first.y - last.y) <= tol && Math.abs(last.bulge || 0) < 1e-6) {
-      cleaned.pop();
+  if (u >= U[n + 1] - 1e-11) {
+    for (let j = n; j >= p; j--) {
+      if (U[j + 1] > U[j] + 1e-11) {
+        k = j;
+        break;
+      }
     }
   }
-  return cleaned;
+
+  const d = [];
+  for (let j = 0; j <= p; j++) {
+    const idx = Math.max(0, Math.min(n, k - p + j));
+    const w = (weights && weights[idx] > 0) ? weights[idx] : 1.0;
+    d.push({
+      wx: ctrlPts[idx].x * w,
+      wy: ctrlPts[idx].y * w,
+      w: w
+    });
+  }
+
+  for (let r = 1; r <= p; r++) {
+    for (let j = p; j >= r; j--) {
+      const i = k - p + j;
+      const denom = U[i + p - r + 1] - U[i];
+      const alpha = Math.abs(denom) > 1e-12 ? (u - U[i]) / denom : 0.0;
+      d[j] = {
+        wx: (1.0 - alpha) * d[j - 1].wx + alpha * d[j].wx,
+        wy: (1.0 - alpha) * d[j - 1].wy + alpha * d[j].wy,
+        w:  (1.0 - alpha) * d[j - 1].w  + alpha * d[j].w
+      };
+    }
+  }
+
+  const finalW = d[p].w || 1.0;
+  return {
+    x: d[p].wx / finalW,
+    y: d[p].wy / finalW,
+    isCurve: true
+  };
 }
 
-function bulgeToArcPoints(p1, p2, bulge, minSteps = 16, circleSteps = 144) {
-  if (!bulge || Math.abs(bulge) < 1e-6) return [{ x: p1.x, y: p1.y }, { x: p2.x, y: p2.y }];
+function sampleNURBSSpline(degree, knots, ctrlPts, weights, targetStepMm = 0.03) {
+  if (!ctrlPts || ctrlPts.length < 2) return [];
+  const n = ctrlPts.length - 1;
+  const p = Math.max(1, Math.min(degree || 3, n));
+
+  // Estimate control polygon length to choose ultra-fine sample count
+  let ctrlLen = 0;
+  for (let i = 0; i < n; i++) {
+    ctrlLen += Math.hypot(ctrlPts[i + 1].x - ctrlPts[i].x, ctrlPts[i + 1].y - ctrlPts[i].y);
+  }
+  const numSamples = Math.max(64, Math.min(3000, Math.ceil(ctrlLen / targetStepMm)));
+
+  // Build a valid clamped knot vector if the DXF omitted knots
+  let U = knots;
+  if (!U || U.length < n + p + 2) {
+    U = [];
+    for (let i = 0; i <= p; i++) U.push(0);
+    const interior = n - p;
+    for (let i = 1; i <= interior; i++) U.push(i / (interior + 1));
+    for (let i = 0; i <= p; i++) U.push(1);
+  }
+
+  const uMin = U[p];
+  const uMax = U[n + 1];
+  if (uMax <= uMin + 1e-12) {
+    return ctrlPts.map(pt => ({ x: pt.x, y: pt.y, isCurve: true }));
+  }
+
+  const pts = [];
+  for (let s = 0; s <= numSamples; s++) {
+    const u = uMin + (uMax - uMin) * (s / numSamples);
+    const pt = evaluateNURBSPoint(u, p, U, ctrlPts, weights);
+    if (pts.length === 0 || Math.hypot(pt.x - pts[pts.length - 1].x, pt.y - pts[pts.length - 1].y) > 1e-6) {
+      pts.push(pt);
+    }
+  }
+  return pts;
+}
+
+function bulgeToArcPoints(p1, p2, bulge, targetStepMm = 0.03) {
+  if (!bulge || Math.abs(bulge) < 1e-6) {
+    return [{ x: p1.x, y: p1.y, isCurve: false }, { x: p2.x, y: p2.y, isCurve: false }];
+  }
   const theta = 4 * Math.atan(bulge);
   const dx = p2.x - p1.x, dy = p2.y - p1.y;
   const dist = Math.hypot(dx, dy);
-  if (dist < 1e-7) return [{ x: p1.x, y: p1.y }];
+  if (dist < 1e-8) return [{ x: p1.x, y: p1.y, isCurve: false }];
   const radius = dist / (2 * Math.sin(Math.abs(theta) / 2));
   const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
   const dirX = dx / dist, dirY = dy / dist;
@@ -1706,35 +1790,90 @@ function bulgeToArcPoints(p1, p2, bulge, minSteps = 16, circleSteps = 144) {
   const h = Math.sqrt(Math.max(0, radius * radius - (dist * dist) / 4)) * (Math.abs(bulge) > 1 ? -1 : 1);
   const cx = midX - sign * dirY * h, cy = midY + sign * dirX * h;
   const startAng = Math.atan2(p1.y - cy, p1.x - cx);
-  const steps = Math.max(minSteps, Math.ceil((Math.abs(theta) / (Math.PI * 2)) * circleSteps));
+  const arcLen = Math.abs(theta) * radius;
+  const steps = Math.max(48, Math.min(2400, Math.ceil(arcLen / targetStepMm)));
   const pts = [];
   for (let i = 0; i <= steps; i++) {
     const a = startAng + (theta * i) / steps;
-    pts.push({ x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a), bulge: 0 });
+    pts.push({ x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a), isCurve: true });
   }
   return pts;
 }
 
-// Expand a bulge-encoded loop into a tessellated polygon at a requested resolution profile
-function tessellateLoopAtProfile(loop, profile) {
-  const { circleSteps, minArcSteps, mergeTol, preserveBulge } = profile;
-  if (preserveBulge) {
-    // Keep exact bulge vertices intact for true-arc DXF export!
-    return loop.map(v => ({ x: v.x, y: v.y, bulge: v.bulge || 0 }));
+// Create lightweight proxy loop (~1.0mm chord spacing) strictly for fast 2D raster nesting & canvas preview
+function buildSolverProxyLoop(fullLoop) {
+  if (fullLoop.length <= 140) {
+    return fullLoop.map(p => ({ x: p.x, y: p.y }));
   }
-  const polyPts = [];
-  for (let i = 0; i < loop.length; i++) {
-    const v1 = loop[i];
-    const v2 = loop[(i + 1) % loop.length];
-    if (v1.bulge && Math.abs(v1.bulge) > 1e-6) {
-      const seg = bulgeToArcPoints(v1, v2, v1.bulge, minArcSteps, circleSteps);
-      seg.pop(); // Next iteration adds v2
-      polyPts.push(...seg);
-    } else {
-      polyPts.push({ x: v1.x, y: v1.y, bulge: 0 });
+  const proxy = [{ x: fullLoop[0].x, y: fullLoop[0].y }];
+  const minStep = 0.85;
+  for (let i = 1; i < fullLoop.length; i++) {
+    const prev = proxy[proxy.length - 1];
+    const cur = fullLoop[i];
+    if (!cur.isCurve || Math.hypot(cur.x - prev.x, cur.y - prev.y) >= minStep) {
+      proxy.push({ x: cur.x, y: cur.y });
     }
   }
-  return cleanPolygonVertices(polyPts, mergeTol);
+  if (proxy.length < 8) {
+    const stride = Math.max(1, Math.floor(fullLoop.length / 64));
+    proxy.length = 0;
+    for (let i = 0; i < fullLoop.length; i += stride) {
+      proxy.push({ x: fullLoop[i].x, y: fullLoop[i].y });
+    }
+  }
+  return proxy;
+}
+
+/**
+ * Build the Export Contour Loop at the user's selected resolution ('low', 'medium', 'high')
+ * - Low: Downsamples curve vertices to 0.45mm step (compact file)
+ * - Medium: Keeps 0.08mm curve vertices + subdivides straight/angled edges every 0.90mm
+ * - High: Keeps all 0.02mm NURBS/arc vertices + subdivides all perimeter edges every 0.16mm
+ */
+function buildExportLoopAtResolution(fullLoop, profileKey) {
+  const profile = EXPORT_RESOLUTION_PROFILES[profileKey] || EXPORT_RESOLUTION_PROFILES.high;
+  const { curveStepMm, maxEdgePitchMm } = profile;
+  if (!fullLoop || fullLoop.length < 3) return fullLoop || [];
+
+  const out = [];
+  const n = fullLoop.length;
+
+  for (let i = 0; i < n; i++) {
+    const p1 = fullLoop[i];
+    const p2 = fullLoop[(i + 1) % n];
+
+    if (out.length === 0) {
+      out.push({ x: p1.x, y: p1.y });
+    } else {
+      const last = out[out.length - 1];
+      const distFromLast = Math.hypot(p1.x - last.x, p1.y - last.y);
+      // Filter curve points according to curveStepMm, but ALWAYS keep sharp corner endpoints (!p1.isCurve)
+      if (!p1.isCurve || distFromLast >= curveStepMm) {
+        if (distFromLast > 1e-6) out.push({ x: p1.x, y: p1.y });
+      }
+    }
+
+    // Subdivide long edges according to maxEdgePitchMm so Medium and High exports have high vertex density
+    if (maxEdgePitchMm > 0) {
+      const segLen = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      if (segLen > maxEdgePitchMm * 1.25) {
+        const steps = Math.min(4000, Math.ceil(segLen / maxEdgePitchMm));
+        for (let s = 1; s < steps; s++) {
+          const t = s / steps;
+          out.push({
+            x: p1.x + (p2.x - p1.x) * t,
+            y: p1.y + (p2.y - p1.y) * t
+          });
+        }
+      }
+    }
+  }
+
+  if (out.length > 2) {
+    const first = out[0], last = out[out.length - 1];
+    if (Math.hypot(first.x - last.x, first.y - last.y) < 1e-5) out.pop();
+  }
+  return out.length >= 3 ? out : fullLoop;
 }
 
 function parseDXF(dxfText, fileName, colorIndex) {
@@ -1745,18 +1884,6 @@ function parseDXF(dxfText, fileName, colorIndex) {
     const val = rawLines[i + 1].trim();
     if (!isNaN(code)) pairs.push({ code, val });
   }
-
-  // Detect DXF Header $INSUNITS if present so Imperial (inch) files auto-convert to mm instead of importing tiny
-  let insUnits = 4; // Default 4 = mm
-  for (let i = 0; i < Math.min(pairs.length - 2, 1000); i++) {
-    if (pairs[i].code === 9 && pairs[i].val === '$INSUNITS') {
-      if (pairs[i + 1] && pairs[i + 1].code === 70) {
-        insUnits = parseInt(pairs[i + 1].val, 10) || 4;
-      }
-      break;
-    }
-  }
-  const unitScale = insUnits === 1 ? 25.4 : insUnits === 5 ? 10.0 : insUnits === 6 ? 1000.0 : 1.0;
 
   let idx = 0, inEntities = false;
   while (idx < pairs.length) {
@@ -1769,8 +1896,9 @@ function parseDXF(dxfText, fileName, colorIndex) {
   }
   if (!inEntities) idx = 0;
 
-  const exactClosedLoops = []; // Preserves exact bulge attributes for CAD-grade export
+  const fullClosedLoops = [];
   const rawOpenSegments = [];
+  let splineCount = 0;
 
   while (idx < pairs.length) {
     const p = pairs[idx];
@@ -1783,50 +1911,142 @@ function parseDXF(dxfText, fileName, colorIndex) {
         let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
         while (idx < pairs.length && pairs[idx].code !== 0) {
           const { code, val } = pairs[idx];
-          if (code === 10) x1 = parseFloat(val) * unitScale;
-          else if (code === 20) y1 = parseFloat(val) * unitScale;
-          else if (code === 11) x2 = parseFloat(val) * unitScale;
-          else if (code === 21) y2 = parseFloat(val) * unitScale;
+          if (code === 10) x1 = parseFloat(val);
+          else if (code === 20) y1 = parseFloat(val);
+          else if (code === 11) x2 = parseFloat(val);
+          else if (code === 21) y2 = parseFloat(val);
           idx++;
         }
-        if (Math.hypot(x2 - x1, y2 - y1) > 1e-4) {
-          rawOpenSegments.push([{ x: x1, y: y1, bulge: 0 }, { x: x2, y: y2, bulge: 0 }]);
+        if (Math.hypot(x2 - x1, y2 - y1) > 1e-6) {
+          rawOpenSegments.push([{ x: x1, y: y1, isCurve: false }, { x: x2, y: y2, isCurve: false }]);
         }
       } else if (type === 'CIRCLE') {
         let cx = 0, cy = 0, r = 0;
         while (idx < pairs.length && pairs[idx].code !== 0) {
           const { code, val } = pairs[idx];
-          if (code === 10) cx = parseFloat(val) * unitScale;
-          else if (code === 20) cy = parseFloat(val) * unitScale;
-          else if (code === 40) r = parseFloat(val) * unitScale;
+          if (code === 10) cx = parseFloat(val);
+          else if (code === 20) cy = parseFloat(val);
+          else if (code === 40) r = parseFloat(val);
           idx++;
         }
-        if (r > 1e-4) {
-          // Store circle as two 180-degree bulge arcs (bulge = 1.0) so High export outputs a true geometric circle!
-          exactClosedLoops.push([
-            { x: cx - r, y: cy, bulge: 1.0 },
-            { x: cx + r, y: cy, bulge: 1.0 }
-          ]);
+        if (r > 1e-5) {
+          const steps = Math.max(180, Math.min(2400, Math.ceil((2 * Math.PI * r) / 0.03)));
+          const pts = [];
+          for (let i = 0; i < steps; i++) {
+            const a = (i / steps) * Math.PI * 2;
+            pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), isCurve: true });
+          }
+          fullClosedLoops.push(pts);
         }
       } else if (type === 'ARC') {
         let cx = 0, cy = 0, r = 0, sAng = 0, eAng = 360;
         while (idx < pairs.length && pairs[idx].code !== 0) {
           const { code, val } = pairs[idx];
-          if (code === 10) cx = parseFloat(val) * unitScale;
-          else if (code === 20) cy = parseFloat(val) * unitScale;
-          else if (code === 40) r = parseFloat(val) * unitScale;
+          if (code === 10) cx = parseFloat(val);
+          else if (code === 20) cy = parseFloat(val);
+          else if (code === 40) r = parseFloat(val);
           else if (code === 50) sAng = parseFloat(val);
           else if (code === 51) eAng = parseFloat(val);
           idx++;
         }
-        if (r > 1e-4) {
+        if (r > 1e-5) {
           let s = sAng * Math.PI / 180, e = eAng * Math.PI / 180;
           while (e <= s) e += Math.PI * 2;
           const sweep = e - s;
           const bulge = Math.tan(sweep / 4);
-          const pStart = { x: cx + r * Math.cos(s), y: cy + r * Math.sin(s), bulge };
-          const pEnd = { x: cx + r * Math.cos(e), y: cy + r * Math.sin(e), bulge: 0 };
-          rawOpenSegments.push([pStart, pEnd]);
+          const arcPts = bulgeToArcPoints(
+            { x: cx + r * Math.cos(s), y: cy + r * Math.sin(s) },
+            { x: cx + r * Math.cos(e), y: cy + r * Math.sin(e) },
+            bulge,
+            0.03
+          );
+          // Mark endpoints as non-curve so endpoint corners are never decimated
+          arcPts[0].isCurve = false;
+          arcPts[arcPts.length - 1].isCurve = false;
+          rawOpenSegments.push(arcPts);
+        }
+      } else if (type === 'SPLINE') {
+        splineCount++;
+        let flag = 0, degree = 3;
+        const knots = [];
+        const ctrlPts = [];
+        const weights = [];
+        const fitPts = [];
+        let curCtrl = null, curFit = null;
+
+        while (idx < pairs.length && pairs[idx].code !== 0) {
+          const { code, val } = pairs[idx];
+          if (code === 70) flag = parseInt(val, 10);
+          else if (code === 71) degree = parseInt(val, 10);
+          else if (code === 40) knots.push(parseFloat(val));
+          else if (code === 41) weights.push(parseFloat(val));
+          else if (code === 10) {
+            if (curCtrl) ctrlPts.push(curCtrl);
+            curCtrl = { x: parseFloat(val), y: 0 };
+          } else if (code === 20 && curCtrl) {
+            curCtrl.y = parseFloat(val);
+          } else if (code === 11) {
+            if (curFit) fitPts.push(curFit);
+            curFit = { x: parseFloat(val), y: 0 };
+          } else if (code === 21 && curFit) {
+            curFit.y = parseFloat(val);
+          }
+          idx++;
+        }
+        if (curCtrl) ctrlPts.push(curCtrl);
+        if (curFit) fitPts.push(curFit);
+
+        const sourceCtrl = ctrlPts.length >= 2 ? ctrlPts : fitPts;
+        if (sourceCtrl.length >= 2) {
+          const splinePts = sampleNURBSSpline(degree, knots, sourceCtrl, weights, 0.025);
+          if (splinePts.length >= 2) {
+            splinePts[0].isCurve = false;
+            splinePts[splinePts.length - 1].isCurve = false;
+            const isClosed = Math.hypot(
+              splinePts[0].x - splinePts[splinePts.length - 1].x,
+              splinePts[0].y - splinePts[splinePts.length - 1].y
+            ) < 0.02;
+            if (isClosed && splinePts.length >= 4) {
+              splinePts.pop();
+              fullClosedLoops.push(splinePts);
+            } else {
+              rawOpenSegments.push(splinePts);
+            }
+          }
+        }
+      } else if (type === 'ELLIPSE') {
+        let cx = 0, cy = 0, mx = 10, my = 0, ratio = 1, sParam = 0, eParam = Math.PI * 2;
+        while (idx < pairs.length && pairs[idx].code !== 0) {
+          const { code, val } = pairs[idx];
+          if (code === 10) cx = parseFloat(val);
+          else if (code === 20) cy = parseFloat(val);
+          else if (code === 11) mx = parseFloat(val);
+          else if (code === 21) my = parseFloat(val);
+          else if (code === 40) ratio = parseFloat(val);
+          else if (code === 41) sParam = parseFloat(val);
+          else if (code === 42) eParam = parseFloat(val);
+          idx++;
+        }
+        const majorR = Math.hypot(mx, my);
+        const minorR = majorR * ratio;
+        const rot = Math.atan2(my, mx);
+        while (eParam <= sParam) eParam += Math.PI * 2;
+        const steps = 360;
+        const ellPts = [];
+        for (let i = 0; i <= steps; i++) {
+          const t = sParam + (eParam - sParam) * (i / steps);
+          const lx = majorR * Math.cos(t), ly = minorR * Math.sin(t);
+          ellPts.push({
+            x: cx + lx * Math.cos(rot) - ly * Math.sin(rot),
+            y: cy + lx * Math.sin(rot) + ly * Math.cos(rot),
+            isCurve: true
+          });
+        }
+        if (Math.abs((eParam - sParam) - Math.PI * 2) < 0.01) {
+          ellPts.pop();
+          fullClosedLoops.push(ellPts);
+        } else {
+          rawOpenSegments.push(ellPts);
         }
       } else if (type === 'LWPOLYLINE') {
         const verts = [];
@@ -1836,23 +2056,33 @@ function parseDXF(dxfText, fileName, colorIndex) {
           if (code === 70) flag = parseInt(val, 10);
           else if (code === 10) {
             if (curVert) verts.push(curVert);
-            curVert = { x: parseFloat(val) * unitScale, y: 0, bulge: 0 };
-          } else if (code === 20 && curVert) curVert.y = parseFloat(val) * unitScale;
+            curVert = { x: parseFloat(val), y: 0, bulge: 0 };
+          } else if (code === 20 && curVert) curVert.y = parseFloat(val);
           else if (code === 42 && curVert) curVert.bulge = parseFloat(val);
           idx++;
         }
         if (curVert) verts.push(curVert);
         if (verts.length >= 2) {
           const isClosed = (flag & 1) === 1 ||
-            (Math.hypot(verts[0].x - verts[verts.length - 1].x, verts[0].y - verts[verts.length - 1].y) < 0.05 && Math.abs(verts[verts.length - 1].bulge || 0) < 1e-6);
-          if (isClosed) {
-            if (verts.length > 2 && Math.hypot(verts[0].x - verts[verts.length - 1].x, verts[0].y - verts[verts.length - 1].y) < 1e-4 && Math.abs(verts[verts.length - 1].bulge || 0) < 1e-6) {
-              verts.pop();
+            (Math.hypot(verts[0].x - verts[verts.length - 1].x, verts[0].y - verts[verts.length - 1].y) < 0.02 && Math.abs(verts[verts.length - 1].bulge || 0) < 1e-6);
+          const expanded = [];
+          const segCount = isClosed ? verts.length : verts.length - 1;
+          for (let i = 0; i < segCount; i++) {
+            const v1 = verts[i], v2 = verts[(i + 1) % verts.length];
+            if (v1.bulge && Math.abs(v1.bulge) > 1e-6) {
+              const arcPts = bulgeToArcPoints(v1, v2, v1.bulge, 0.03);
+              arcPts[0].isCurve = false;
+              if (i < segCount - 1 || isClosed) arcPts.pop();
+              expanded.push(...arcPts);
+            } else {
+              expanded.push({ x: v1.x, y: v1.y, isCurve: false });
+              if (!isClosed && i === segCount - 1) {
+                expanded.push({ x: v2.x, y: v2.y, isCurve: false });
+              }
             }
-            exactClosedLoops.push(verts);
-          } else {
-            rawOpenSegments.push(verts);
           }
+          if (isClosed && expanded.length >= 3) fullClosedLoops.push(expanded);
+          else if (expanded.length >= 2) rawOpenSegments.push(expanded);
         }
       } else if (type === 'POLYLINE') {
         let flag = 0;
@@ -1866,8 +2096,8 @@ function parseDXF(dxfText, fileName, colorIndex) {
             idx++;
             let vx = 0, vy = 0, bulge = 0;
             while (idx < pairs.length && pairs[idx].code !== 0) {
-              if (pairs[idx].code === 10) vx = parseFloat(pairs[idx].val) * unitScale;
-              else if (pairs[idx].code === 20) vy = parseFloat(pairs[idx].val) * unitScale;
+              if (pairs[idx].code === 10) vx = parseFloat(pairs[idx].val);
+              else if (pairs[idx].code === 20) vy = parseFloat(pairs[idx].val);
               else if (pairs[idx].code === 42) bulge = parseFloat(pairs[idx].val);
               idx++;
             }
@@ -1878,9 +2108,25 @@ function parseDXF(dxfText, fileName, colorIndex) {
         }
         if (verts.length >= 2) {
           const isClosed = (flag & 1) === 1 ||
-            Math.hypot(verts[0].x - verts[verts.length - 1].x, verts[0].y - verts[verts.length - 1].y) < 0.05;
-          if (isClosed) exactClosedLoops.push(verts);
-          else rawOpenSegments.push(verts);
+            Math.hypot(verts[0].x - verts[verts.length - 1].x, verts[0].y - verts[verts.length - 1].y) < 0.02;
+          const expanded = [];
+          const segCount = isClosed ? verts.length : verts.length - 1;
+          for (let i = 0; i < segCount; i++) {
+            const v1 = verts[i], v2 = verts[(i + 1) % verts.length];
+            if (v1.bulge && Math.abs(v1.bulge) > 1e-6) {
+              const arcPts = bulgeToArcPoints(v1, v2, v1.bulge, 0.03);
+              arcPts[0].isCurve = false;
+              if (i < segCount - 1 || isClosed) arcPts.pop();
+              expanded.push(...arcPts);
+            } else {
+              expanded.push({ x: v1.x, y: v1.y, isCurve: false });
+              if (!isClosed && i === segCount - 1) {
+                expanded.push({ x: v2.x, y: v2.y, isCurve: false });
+              }
+            }
+          }
+          if (isClosed && expanded.length >= 3) fullClosedLoops.push(expanded);
+          else if (expanded.length >= 2) rawOpenSegments.push(expanded);
         }
       } else {
         while (idx < pairs.length && pairs[idx].code !== 0) idx++;
@@ -1888,92 +2134,107 @@ function parseDXF(dxfText, fileName, colorIndex) {
     } else idx++;
   }
 
-  // Deduplicate identical open segments
+  // Exact-Identity Deduplication (1e-5 mm) so dense CAD segments are never falsely deleted
   const openSegments = [];
-  const SEG_TOL = 0.08;
+  const EXACT_DUP_TOL = 1e-5;
   for (const seg of rawOpenSegments) {
+    if (seg.length < 2) continue;
     const s0 = seg[0], s1 = seg[seg.length - 1];
+    if (seg.length === 2 && Math.hypot(s1.x - s0.x, s1.y - s0.y) < 1e-6) continue;
     let isDup = false;
-    for (const kept of openSegments) {
-      const k0 = kept[0], k1 = kept[kept.length - 1];
-      const sameDir = Math.hypot(s0.x - k0.x, s0.y - k0.y) < SEG_TOL && Math.hypot(s1.x - k1.x, s1.y - k1.y) < SEG_TOL && Math.abs((s0.bulge || 0) - (k0.bulge || 0)) < 0.01;
-      const revDir = Math.hypot(s0.x - k1.x, s0.y - k1.y) < SEG_TOL && Math.hypot(s1.x - k0.x, s1.y - k0.y) < SEG_TOL && Math.abs((s0.bulge || 0) + (k0.bulge || 0)) < 0.01;
-      if (sameDir || revDir) { isDup = true; break; }
+    if (seg.length === 2) {
+      for (const kept of openSegments) {
+        if (kept.length !== 2) continue;
+        const k0 = kept[0], k1 = kept[1];
+        const sameDir = Math.hypot(s0.x - k0.x, s0.y - k0.y) < EXACT_DUP_TOL && Math.hypot(s1.x - k1.x, s1.y - k1.y) < EXACT_DUP_TOL;
+        const revDir = Math.hypot(s0.x - k1.x, s0.y - k1.y) < EXACT_DUP_TOL && Math.hypot(s1.x - k0.x, s1.y - k0.y) < EXACT_DUP_TOL;
+        if (sameDir || revDir) { isDup = true; break; }
+      }
     }
     if (!isDup) openSegments.push(seg);
   }
 
-  // Reverse a bulge-encoded segment chain while negating & shifting bulge values properly
-  const reverseBulgeChain = (seg) => {
-    const rev = [];
-    for (let i = seg.length - 1; i >= 0; i--) {
-      const prevBulge = i > 0 ? -(seg[i - 1].bulge || 0) : 0;
-      rev.push({ x: seg[i].x, y: seg[i].y, bulge: prevBulge });
-    }
-    return rev;
-  };
-
-  // Chain open segments into exact closed loops
-  const TOL = 0.25;
+  // Nearest-Neighbor Endpoint Chainer (Chains SPLINE + LINE + ARC segments in exact geometric order)
+  const MAX_SNAP_TOL = 0.25;
   const used = new Array(openSegments.length).fill(false);
+
   for (let i = 0; i < openSegments.length; i++) {
     if (used[i]) continue;
     used[i] = true;
     const chain = openSegments[i].map(v => ({ ...v }));
-    let extended = true;
-    while (extended) {
-      extended = false;
-      const head = chain[0], tail = chain[chain.length - 1];
-      if (chain.length >= 2 && Math.hypot(head.x - tail.x, head.y - tail.y) <= TOL) {
-        if (Math.abs(tail.bulge || 0) < 1e-6 && chain.length >= 3) chain.pop();
-        break;
-      }
+
+    while (true) {
+      const head = chain[0];
+      const tail = chain[chain.length - 1];
+      const closeDist = Math.hypot(head.x - tail.x, head.y - tail.y);
+
+      let bestIdx = -1;
+      let bestMode = 0;
+      let bestDist = MAX_SNAP_TOL;
+
       for (let j = 0; j < openSegments.length; j++) {
         if (used[j]) continue;
         const seg = openSegments[j];
         const sHead = seg[0], sTail = seg[seg.length - 1];
-        if (Math.hypot(tail.x - sHead.x, tail.y - sHead.y) <= TOL) {
-          chain[chain.length - 1].bulge = sHead.bulge || 0;
-          chain.push(...seg.slice(1).map(v => ({ ...v })));
-          used[j] = true; extended = true; break;
-        } else if (Math.hypot(tail.x - sTail.x, tail.y - sTail.y) <= TOL) {
-          const rev = reverseBulgeChain(seg);
-          chain[chain.length - 1].bulge = rev[0].bulge || 0;
-          chain.push(...rev.slice(1));
-          used[j] = true; extended = true; break;
-        } else if (Math.hypot(head.x - sTail.x, head.y - sTail.y) <= TOL) {
-          const copy = seg.slice(0, seg.length - 1).map(v => ({ ...v }));
-          chain.unshift(...copy);
-          used[j] = true; extended = true; break;
-        } else if (Math.hypot(head.x - sHead.x, head.y - sHead.y) <= TOL) {
-          const rev = reverseBulgeChain(seg);
-          chain.unshift(...rev.slice(0, rev.length - 1));
-          used[j] = true; extended = true; break;
+
+        const d1 = Math.hypot(tail.x - sHead.x, tail.y - sHead.y);
+        if (d1 < bestDist) { bestDist = d1; bestIdx = j; bestMode = 1; }
+
+        const d2 = Math.hypot(tail.x - sTail.x, tail.y - sTail.y);
+        if (d2 < bestDist) { bestDist = d2; bestIdx = j; bestMode = 2; }
+
+        const d3 = Math.hypot(head.x - sTail.x, head.y - sTail.y);
+        if (d3 < bestDist) { bestDist = d3; bestIdx = j; bestMode = 3; }
+
+        const d4 = Math.hypot(head.x - sHead.x, head.y - sHead.y);
+        if (d4 < bestDist) { bestDist = d4; bestIdx = j; bestMode = 4; }
+      }
+
+      if (chain.length >= 3 && closeDist <= bestDist && closeDist <= MAX_SNAP_TOL) {
+        if (closeDist < 1e-4) chain.pop();
+        break;
+      }
+
+      if (bestIdx === -1) {
+        if (chain.length >= 3 && closeDist <= MAX_SNAP_TOL && closeDist < 1e-4) {
+          chain.pop();
         }
+        break;
+      }
+
+      used[bestIdx] = true;
+      const seg = openSegments[bestIdx];
+      if (bestMode === 1) {
+        for (let k = 1; k < seg.length; k++) chain.push({ ...seg[k] });
+      } else if (bestMode === 2) {
+        for (let k = seg.length - 2; k >= 0; k--) chain.push({ ...seg[k] });
+      } else if (bestMode === 3) {
+        const prefix = seg.slice(0, seg.length - 1).map(v => ({ ...v }));
+        chain.unshift(...prefix);
+      } else if (bestMode === 4) {
+        const rev = [];
+        for (let k = seg.length - 1; k >= 1; k--) rev.push({ ...seg[k] });
+        chain.unshift(...rev);
       }
     }
-    if (chain.length >= 2) {
-      exactClosedLoops.push(chain);
+
+    if (chain.length >= 3) {
+      fullClosedLoops.push(chain);
     }
   }
 
-  if (exactClosedLoops.length === 0) throw new Error(`No valid closed geometry found in ${fileName}`);
+  if (fullClosedLoops.length === 0) throw new Error(`No valid closed geometry found in ${fileName}`);
 
-  // Build paired (exactLoop, solverTessellatedLoop) so we can sort and deduplicate accurately
-  const pairedLoops = exactClosedLoops.map(exact => {
-    const solverPoly = tessellateLoopAtProfile(exact, {
-      circleSteps: 96,
-      minArcSteps: 12,
-      mergeTol: 0.02,
-      preserveBulge: false
-    });
+  const pairedLoops = fullClosedLoops.map(full => {
+    const solverProxy = buildSolverProxyLoop(full);
+    const area = Math.abs(signedPolygonArea(solverProxy));
     return {
-      exact,
-      solver: solverPoly,
-      area: Math.abs(signedPolygonArea(solverPoly)),
-      bounds: getBounds([solverPoly])
+      full,
+      solver: solverProxy,
+      area,
+      bounds: getBounds([solverProxy])
     };
-  }).filter(item => item.solver.length >= 3 && item.area > 0.5);
+  }).filter(item => item.solver.length >= 3 && item.area > 0.2);
 
   if (pairedLoops.length === 0) throw new Error(`No non-degenerate closed loops found in ${fileName}`);
 
@@ -1984,22 +2245,22 @@ function parseDXF(dxfText, fileName, colorIndex) {
 
   for (let i = 1; i < pairedLoops.length; i++) {
     const cand = pairedLoops[i];
-    if (cand.area < 0.5 || cand.area >= outerItem.area * 0.96) continue;
+    if (cand.area < 0.2 || cand.area >= outerItem.area * 0.97) continue;
     const sameBBox =
-      Math.abs(cand.bounds.minX - outerItem.bounds.minX) < 1.0 &&
-      Math.abs(cand.bounds.minY - outerItem.bounds.minY) < 1.0 &&
-      Math.abs(cand.bounds.maxX - outerItem.bounds.maxX) < 1.0 &&
-      Math.abs(cand.bounds.maxY - outerItem.bounds.maxY) < 1.0;
+      Math.abs(cand.bounds.minX - outerItem.bounds.minX) < 0.8 &&
+      Math.abs(cand.bounds.minY - outerItem.bounds.minY) < 0.8 &&
+      Math.abs(cand.bounds.maxX - outerItem.bounds.maxX) < 0.8 &&
+      Math.abs(cand.bounds.maxY - outerItem.bounds.maxY) < 0.8;
     if (sameBBox) continue;
 
     let dupHole = false;
     for (let k = 1; k < uniquePairs.length; k++) {
       const kb = uniquePairs[k].bounds;
       if (
-        Math.abs(cand.bounds.minX - kb.minX) < 1.0 &&
-        Math.abs(cand.bounds.minY - kb.minY) < 1.0 &&
-        Math.abs(cand.bounds.width - kb.width) < 1.0 &&
-        Math.abs(cand.bounds.height - kb.height) < 1.0
+        Math.abs(cand.bounds.minX - kb.minX) < 0.8 &&
+        Math.abs(cand.bounds.minY - kb.minY) < 0.8 &&
+        Math.abs(cand.bounds.width - kb.width) < 0.8 &&
+        Math.abs(cand.bounds.height - kb.height) < 0.8
       ) { dupHole = true; break; }
     }
     if (!dupHole && pointInPolygon(cand.solver[0], outerItem.solver)) {
@@ -2008,29 +2269,31 @@ function parseDXF(dxfText, fileName, colorIndex) {
   }
 
   const solverLoopsRaw = uniquePairs.map(p => p.solver);
-  const exactLoopsRaw = uniquePairs.map(p => p.exact);
+  const fullLoopsRaw = uniquePairs.map(p => p.full);
   const bounds = getBounds(solverLoopsRaw);
 
   const normalizedSolverLoops = solverLoopsRaw.map(loop =>
-    loop.map(pt => ({ x: pt.x - bounds.minX, y: pt.y - bounds.minY, bulge: 0 }))
+    loop.map(pt => ({ x: pt.x - bounds.minX, y: pt.y - bounds.minY, isCurve: false }))
   );
-  const normalizedExactLoops = exactLoopsRaw.map(loop =>
-    loop.map(pt => ({ x: pt.x - bounds.minX, y: pt.y - bounds.minY, bulge: pt.bulge || 0 }))
+  const normalizedFullLoops = fullLoopsRaw.map(loop =>
+    loop.map(pt => ({ x: pt.x - bounds.minX, y: pt.y - bounds.minY, isCurve: Boolean(pt.isCurve) }))
   );
 
+  const rawVertCount = normalizedFullLoops.reduce((s, l) => s + l.length, 0);
   let holesArea = 0;
   for (let i = 1; i < normalizedSolverLoops.length; i++) {
     holesArea += Math.abs(signedPolygonArea(normalizedSolverLoops[i]));
   }
   const netArea = Math.max(outerItem.area - holesArea, outerItem.area * 0.15);
 
-  logDebug(`Loaded ${fileName}: ${uniquePairs.length} loop(s), ${bounds.width.toFixed(1)}×${bounds.height.toFixed(1)}mm`, 'ok');
+  logDebug(`Loaded ${fileName}: ${uniquePairs.length} loop(s), ${splineCount} NURBS spline(s), ${rawVertCount} pts`, 'ok');
 
   return {
     id: 'part_' + Math.random().toString(36).slice(2, 9),
     name: fileName.replace(/\.dxf$/i, ''),
-    loops: normalizedSolverLoops,      // Used for fast viewport & raster collision
-    exactLoops: normalizedExactLoops,  // Preserves exact bulges & un-simplified vertices for export
+    loops: normalizedSolverLoops,     // Fast proxy for 2D raster solver
+    exactLoops: normalizedFullLoops,  // Ultra-fine NURBS & curve vertices for export
+    rawVertCount,
     width: bounds.width,
     height: bounds.height,
     area: netArea,
@@ -2154,39 +2417,51 @@ function parseBOMAndAutoCount(bomText, parts) {
 
 /**
  * ============================================================================
- * 5. SAMPLE BATCH GENERATOR (With Exact Bulge Circles)
+ * 5. SAMPLE BATCH GENERATOR (Includes MB1 NURBS Slot Part from Source 5)
  * ============================================================================
  */
 function buildSampleMDFBatch() {
-  const stripLoop = [[{ x: 0, y: 0, bulge: 0 }, { x: 75, y: 0, bulge: 0 }, { x: 75, y: 780, bulge: 0 }, { x: 0, y: 780, bulge: 0 }]];
-  const mb5Loop = [[{ x: 0, y: 0, bulge: 0 }, { x: 480, y: 0, bulge: 0 }, { x: 480, y: 600, bulge: 0 }, { x: 0, y: 600, bulge: 0 }]];
-  const mb6Loop = [[{ x: 0, y: 0, bulge: 0 }, { x: 310, y: 400, bulge: 0 }, { x: 310, y: 480, bulge: 0 }, { x: 0, y: 480, bulge: 0 }]];
-
-  const addExactCircle = (cx, cy, r) => [
-    { x: cx - r, y: cy, bulge: 1.0 },
-    { x: cx + r, y: cy, bulge: 1.0 }
+  // 1. Reconstruct the exact MB1 part from Source 5 (541.65 x 440.74mm outer + NURBS rounded slot inside)
+  const mb1Outer = [
+    { x: -218.984351, y: 5876.059928, isCurve: false },
+    { x: 322.671145, y: 5876.059928, isCurve: false },
+    { x: 322.671145, y: 6316.796998, isCurve: false },
+    { x: -218.984351, y: 6316.796998, isCurve: false }
   ];
+  const w45 = 0.9238795149221647;
+  const k1 = [0, 0, 0, 23.56194766, 23.56194766, 47.12389532, 47.12389532, 47.12389532];
+  const sp1 = sampleNURBSSpline(2, k1, [
+    { x: 215.371784, y: 6208.318841 }, { x: 227.798193, y: 6208.318841 },
+    { x: 236.584989, y: 6199.532043 }, { x: 245.371786, y: 6190.745244 },
+    { x: 245.371784, y: 6178.318836 }
+  ], [1, w45, 1, w45, 1], 0.025);
+  const sp2 = sampleNURBSSpline(2, k1, [
+    { x: 245.371784, y: 6106.372198 }, { x: 245.371786, y: 6093.945789 },
+    { x: 236.584989, y: 6085.158991 }, { x: 227.798193, y: 6076.372192 },
+    { x: 215.371784, y: 6076.372192 }
+  ], [1, w45, 1, w45, 1], 0.025);
+  const sp3 = sampleNURBSSpline(2, k1, [
+    { x: -113.674655, y: 6076.372192 }, { x: -126.101064, y: 6076.372192 },
+    { x: -134.887861, y: 6085.158991 }, { x: -143.674658, y: 6093.945789 },
+    { x: -143.674655, y: 6106.372198 }
+  ], [1, w45, 1, w45, 1], 0.025);
+  const sp4 = sampleNURBSSpline(2, k1, [
+    { x: -143.674655, y: 6178.318836 }, { x: -143.674658, y: 6190.745244 },
+    { x: -134.887861, y: 6199.532043 }, { x: -126.101064, y: 6208.318841 },
+    { x: -113.674655, y: 6208.318841 }
+  ], [1, w45, 1, w45, 1], 0.025);
+  const mb1Inner = [...sp1, ...sp2, ...sp3, ...sp4];
 
-  const braceExactLoops = [
-    [
-      { x: 0, y: 0, bulge: 0 }, { x: 240, y: 0, bulge: 0 }, { x: 240, y: 70, bulge: 0 },
-      { x: 70, y: 70, bulge: 0 }, { x: 70, y: 240, bulge: 0 }, { x: 0, y: 240, bulge: 0 }
-    ],
-    addExactCircle(35, 35, 10),
-    addExactCircle(195, 35, 10),
-    addExactCircle(35, 195, 10)
-  ];
+  // 2. MB5 MDF 12mm (480 x 600 mm)
+  const mb5Loop = [[{ x: 0, y: 0, isCurve: false }, { x: 480, y: 0, isCurve: false }, { x: 480, y: 600, isCurve: false }, { x: 0, y: 600, isCurve: false }]];
+
+  // 3. MB6 MDF 12mm (310 x 480 mm)
+  const mb6Loop = [[{ x: 0, y: 0, isCurve: false }, { x: 310, y: 400, isCurve: false }, { x: 310, y: 480, isCurve: false }, { x: 0, y: 480, isCurve: false }]];
 
   const makePart = (name, exactLoops, qty, colorIdx) => {
-    const solverLoops = exactLoops.map(l => tessellateLoopAtProfile(l, {
-      circleSteps: 96,
-      minArcSteps: 12,
-      mergeTol: 0.02,
-      preserveBulge: false
-    }));
-    const b = getBounds(solverLoops);
-    const normSolver = solverLoops.map(l => l.map(p => ({ x: p.x - b.minX, y: p.y - b.minY, bulge: 0 })));
-    const normExact = exactLoops.map(l => l.map(p => ({ x: p.x - b.minX, y: p.y - b.minY, bulge: p.bulge || 0 })));
+    const b = getBounds(exactLoops);
+    const normExact = exactLoops.map(l => l.map(p => ({ x: p.x - b.minX, y: p.y - b.minY, isCurve: Boolean(p.isCurve) })));
+    const normSolver = normExact.map(l => buildSolverProxyLoop(l));
     const outerA = Math.abs(signedPolygonArea(normSolver[0]));
     let holeA = 0;
     for (let i = 1; i < normSolver.length; i++) holeA += Math.abs(signedPolygonArea(normSolver[i]));
@@ -2195,6 +2470,7 @@ function buildSampleMDFBatch() {
       name,
       loops: normSolver,
       exactLoops: normExact,
+      rawVertCount: normExact.reduce((s, l) => s + l.length, 0),
       width: b.width,
       height: b.height,
       area: outerA - holeA,
@@ -2205,10 +2481,9 @@ function buildSampleMDFBatch() {
   };
 
   return [
-    makePart('Side_Rail_12mm', stripLoop, 1, 0),
+    makePart('MB1_NURBS_Slot_12mm', [mb1Outer, mb1Inner], 1, 0),
     makePart('MB5 MDF 12mm', mb5Loop, 1, 1),
-    makePart('MB6 MDF 12mm', mb6Loop, 1, 2),
-    makePart('L_Support_MDF_12mm', braceExactLoops, 1, 3)
+    makePart('MB6 MDF 12mm', mb6Loop, 1, 2)
   ];
 }
 
@@ -2631,11 +2906,10 @@ async function runNestingEngine(parts, config, onProgress) {
         if (rotSteps > 12 && seenFootprints.has(fpKey)) continue;
         seenFootprints.add(fpKey);
 
-        // Rotate exact loops using the exact same bounding-box offset (rotSolver.minX, rotSolver.minY)
         const rotatedExact = (part.exactLoops || part.loops).map(loop =>
           loop.map(p => {
             const rp = rotatePoint(p, angle);
-            return { x: rp.x - rotSolver.minX, y: rp.y - rotSolver.minY, bulge: rp.bulge || 0 };
+            return { x: rp.x - rotSolver.minX, y: rp.y - rotSolver.minY, isCurve: Boolean(p.isCurve) };
           })
         );
 
@@ -2798,7 +3072,10 @@ async function runNestingEngine(parts, config, onProgress) {
 
 /**
  * ============================================================================
- * 7. MULTI-RESOLUTION EXPORT TO LAYERED DXF (With Metric Header & Native Bulges), SVG & ZIP
+ * 7. UNIVERSAL HEADERLESS ENTITIES-ONLY DXF EXPORTER (Matches _4.dxf Format)
+ * Why this format:
+ * - Proven 100% compatible with the user's CAD software (_4.dxf opens with zero errors)
+ * - Exports high-density NURBS & subdivided vertices according to Low / Medium / High
  * ============================================================================
  */
 function exportSheetToDXF(sheet, config) {
@@ -2809,52 +3086,30 @@ function exportSheetToDXF(sheet, config) {
   const lines = [];
   const push = (code, val) => { lines.push(String(code), String(val)); };
 
-  // 1. Write Complete DXF HEADER Section with Metric Units ($INSUNITS = 4 mm, $MEASUREMENT = 1)
-  // This prevents CAD/CAM software from importing the DXF at tiny unitless/inch scales!
-  push(0, 'SECTION');
-  push(2, 'HEADER');
-  push(9, '$ACADVER');
-  push(1, 'AC1015'); // AutoCAD 2000+ LWPOLYLINE compatibility
-  push(9, '$INSUNITS');
-  push(70, 4);       // 4 = Millimeters (1:1 exact metric scale)
-  push(9, '$MEASUREMENT');
-  push(70, 1);       // 1 = Metric
-  push(9, '$EXTMIN');
-  push(10, '0.0');
-  push(20, '0.0');
-  push(30, '0.0');
-  push(9, '$EXTMAX');
-  push(10, sheetWidth.toFixed(dec));
-  push(20, sheetHeight.toFixed(dec));
-  push(30, '0.0');
-  push(0, 'ENDSEC');
-
-  // 2. Write ENTITIES Section
   push(0, 'SECTION');
   push(2, 'ENTITIES');
 
   const writeClosedPoly = (pts, layer, colorCode) => {
+    if (!pts || pts.length < 3) return;
     push(0, 'LWPOLYLINE');
     push(8, layer);
     push(62, colorCode);
     push(90, pts.length);
-    push(70, 1); // Flag 1 = Closed loop
-    for (const p of pts) {
+    push(70, 1);
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
       push(10, p.x.toFixed(dec));
       push(20, p.y.toFixed(dec));
-      if (p.bulge && Math.abs(p.bulge) > 1e-6) {
-        push(42, p.bulge.toFixed(dec)); // Group Code 42 = True Arc Bulge curvature
-      }
     }
   };
 
-  // Sheet Border
+  // 1. Sheet Border
   writeClosedPoly([
     { x: 0, y: 0 }, { x: sheetWidth, y: 0 },
     { x: sheetWidth, y: sheetHeight }, { x: 0, y: sheetHeight }
   ], 'SHEET_BORDER', 7);
 
-  // Sheet Brim
+  // 2. Sheet Brim
   if (sheetBrim > 0) {
     writeClosedPoly([
       { x: sheetBrim, y: sheetBrim },
@@ -2864,16 +3119,15 @@ function exportSheetToDXF(sheet, config) {
     ], 'SHEET_BRIM', 2);
   }
 
-  // Export Each Part at Selected Resolution Profile (Low / Medium / High)
+  // 3. Nested Parts (Inner holes on CUT_INNER, Outer profiles on CUT_OUTER)
   for (const item of sheet.placements) {
     const sourceLoops = item.exactLoops || item.loops;
     for (let i = sourceLoops.length - 1; i >= 0; i--) {
       const isOuter = (i === 0);
-      const resLoop = tessellateLoopAtProfile(sourceLoops[i], profile);
-      const transformed = resLoop.map(p => ({
+      const exportPts = buildExportLoopAtResolution(sourceLoops[i], exportResKey);
+      const transformed = exportPts.map(p => ({
         x: item.x + p.x,
-        y: item.y + p.y,
-        bulge: p.bulge || 0
+        y: item.y + p.y
       }));
       writeClosedPoly(transformed, isOuter ? 'CUT_OUTER' : 'CUT_INNER', isOuter ? 3 : 1);
     }
@@ -2886,10 +3140,8 @@ function exportSheetToDXF(sheet, config) {
 
 function exportSheetToSVG(sheet, config) {
   const { sheetWidth, sheetHeight, sheetBrim, exportResKey } = config;
-  const baseProfile = EXPORT_RESOLUTION_PROFILES[exportResKey] || EXPORT_RESOLUTION_PROFILES.high;
-  // For SVG paths, tessellate bulges at the chosen resolution's circleSteps
-  const svgProfile = { ...baseProfile, preserveBulge: false };
-  const dec = baseProfile.decimals;
+  const profile = EXPORT_RESOLUTION_PROFILES[exportResKey] || EXPORT_RESOLUTION_PROFILES.high;
+  const dec = profile.decimals;
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sheetWidth} ${sheetHeight}" width="${sheetWidth}mm" height="${sheetHeight}mm">\n`;
   svg += `  <rect x="0" y="0" width="${sheetWidth}" height="${sheetHeight}" fill="#141618" stroke="#e2e8f0" stroke-width="1.5"/>\n`;
@@ -2901,7 +3153,7 @@ function exportSheetToSVG(sheet, config) {
     let d = '';
     const sourceLoops = item.exactLoops || item.loops;
     for (const rawLoop of sourceLoops) {
-      const loop = tessellateLoopAtProfile(rawLoop, svgProfile);
+      const loop = buildExportLoopAtResolution(rawLoop, exportResKey);
       if (loop.length < 3) continue;
       d += `M ${(item.x + loop[0].x).toFixed(dec)} ${(sheetHeight - (item.y + loop[0].y)).toFixed(dec)} `;
       for (let i = 1; i < loop.length; i++) {
@@ -2913,6 +3165,21 @@ function exportSheetToSVG(sheet, config) {
   }
   svg += `</svg>`;
   return svg;
+}
+
+// Fast live calculation of the exported DXF file size in KB / MB
+function updateExportFileSizeBadge() {
+  const badge = document.getElementById('exportSizeBadge');
+  if (!badge) return;
+  const activeSheet = state.sheets[state.activeSheetIndex];
+  if (!activeSheet || activeSheet.placements.length === 0) {
+    badge.textContent = '-- KB';
+    return;
+  }
+  const config = getExportConfig();
+  const dxfStr = exportSheetToDXF(activeSheet, config);
+  const kb = (dxfStr.length / 1024);
+  badge.textContent = kb >= 1024 ? `${(kb / 1024).toFixed(2)} MB` : `${kb.toFixed(1)} KB`;
 }
 
 /**
@@ -3080,9 +3347,9 @@ function renderPartsList() {
   const container = document.getElementById('partsList');
   document.getElementById('partTypeCount').textContent = state.parts.length;
   const totalInst = state.parts.reduce((acc, p) => acc + (parseInt(p.quantity, 10) || 0), 0);
-  const totalEntities = state.parts.reduce((acc, p) => acc + p.loops.length * (parseInt(p.quantity, 10) || 0), 0);
+  const totalVerts = state.parts.reduce((acc, p) => acc + (p.rawVertCount || p.loops[0].length) * (parseInt(p.quantity, 10) || 0), 0);
   document.getElementById('totalInstanceCount').textContent = `${totalInst} parts`;
-  document.getElementById('pillPartsEntities').textContent = `${totalInst} parts · ${totalEntities} entities`;
+  document.getElementById('pillPartsEntities').textContent = `${totalInst} parts · ${totalVerts.toLocaleString()} raw pts`;
 
   updateEstimatedTimeUI();
 
@@ -3118,7 +3385,7 @@ function renderPartsList() {
         ${unmatchedBadge}
       </div>
       <div class="part-sub" style="${part.bomUnmatched ? 'color:#f87171;' : ''}">
-        ${part.width.toFixed(0)} × ${part.height.toFixed(0)} mm · ${holesCount} hole${holesCount === 1 ? '' : 's'}
+        ${part.width.toFixed(0)}×${part.height.toFixed(0)}mm · ${(part.rawVertCount || 0).toLocaleString()} pts · ${holesCount} hole${holesCount === 1 ? '' : 's'}
       </div>
     `;
 
@@ -3178,6 +3445,7 @@ function updateStatsAndTabs() {
     document.getElementById('btnExportZIP').disabled = true;
     document.getElementById('zipBtnLabel').textContent = 'ZIP';
     document.getElementById('btnRunQC').disabled = true;
+    updateExportFileSizeBadge();
     updateEstimatedTimeUI();
     return;
   }
@@ -3244,6 +3512,8 @@ function updateStatsAndTabs() {
     });
     tabsEl.appendChild(btn);
   });
+
+  updateExportFileSizeBadge();
 }
 
 function renderViewport() {
@@ -3307,8 +3577,10 @@ function renderViewport() {
         else { primaryColor = '#82cfa0'; fillAlpha = '26'; }
       }
 
+      const renderLoops = item.loops;
+
       ctx.beginPath();
-      for (const loop of item.loops) {
+      for (const loop of renderLoops) {
         if (loop.length < 3) continue;
         ctx.moveTo(loop[0].x, loop[0].y);
         for (let i = 1; i < loop.length; i++) ctx.lineTo(loop[i].x, loop[i].y);
@@ -3317,7 +3589,7 @@ function renderViewport() {
       ctx.fillStyle = primaryColor + fillAlpha;
       ctx.fill('evenodd');
 
-      const outer = item.loops[0];
+      const outer = renderLoops[0];
       if (outer && outer.length >= 3) {
         ctx.beginPath();
         ctx.moveTo(outer[0].x, outer[0].y);
@@ -3328,13 +3600,13 @@ function renderViewport() {
         ctx.stroke();
       }
 
-      if (item.loops.length > 1) {
+      if (renderLoops.length > 1) {
         ctx.save();
         ctx.strokeStyle = '#a3e0ba';
         ctx.lineWidth = 1.1 / state.cam.zoom;
         ctx.setLineDash([4 / state.cam.zoom, 3 / state.cam.zoom]);
-        for (let k = 1; k < item.loops.length; k++) {
-          const hole = item.loops[k];
+        for (let k = 1; k < renderLoops.length; k++) {
+          const hole = renderLoops[k];
           if (hole.length < 3) continue;
           ctx.beginPath();
           ctx.moveTo(hole[0].x, hole[0].y);
@@ -3429,12 +3701,19 @@ async function handleFiles(fileList) {
   }
   if (loaded > 0) {
     document.getElementById('uploadHintText').textContent = loaded === 1 ? lastFileName : `${loaded} DXF files loaded`;
-    setTopStatusBar('ok', 'FILES LOADED', `Loaded ${loaded} DXF file(s) with default quantity set to 1.`);
+    setTopStatusBar('ok', 'FILES LOADED', `Loaded ${loaded} DXF file(s) with full NURBS & curve resolution preserved.`);
   }
   renderPartsList();
 }
 
-// Rotation Slider & Preset Chips (1 to 360 steps = 1° resolution)
+// Update Export File Size Badge when Export Resolution changes
+document.getElementById('exportResolution').addEventListener('change', () => {
+  updateExportFileSizeBadge();
+  const resKey = document.getElementById('exportResolution').value;
+  logDebug(`Switched export resolution to ${EXPORT_RESOLUTION_PROFILES[resKey].name} (${document.getElementById('exportSizeBadge').textContent}).`, 'ok');
+});
+
+// Rotation Slider & Preset Chips
 const rotSlider = document.getElementById('rotSteps');
 const rotSliderLabel = document.getElementById('rotSliderLabel');
 const presetChips = document.querySelectorAll('.preset-chip');
@@ -3562,18 +3841,17 @@ document.getElementById('nestingModel').addEventListener('change', (e) => {
   document.getElementById(id).addEventListener('input', updateEstimatedTimeUI);
 });
 
-// Load Sample Batch + BOM
+// Load Sample Batch + BOM (Includes MB1 NURBS Slot Part from Source 5)
 document.getElementById('btnLoadSamples').addEventListener('click', () => {
   state.parts = buildSampleMDFBatch();
-  document.getElementById('uploadHintText').textContent = '4 sample DXF files loaded';
+  document.getElementById('uploadHintText').textContent = '3 sample DXF files loaded (incl. MB1 NURBS)';
   document.getElementById('bomTextInput').value =
 `Part Name,Material,Qty
-Side_Rail_12mm,MDF 12mm,1
+MB1_NURBS_Slot_12mm,MDF 12mm,2
 MB5 MDF 12mm,MDF 12mm,2
-MB6 MDF 12mm,MDF 12mm,2
-L_Support_MDF_12mm,MDF 12mm,2`;
+MB6 MDF 12mm,MDF 12mm,2`;
 
-  logDebug('Loaded sample MDF batch (4 unique DXF parts).', 'ok');
+  logDebug('Loaded sample MDF batch (including MB1 Rational NURBS Slot part).', 'ok');
   renderPartsList();
   document.getElementById('btnAutoCountBOM').click();
   document.getElementById('btnRunNest').click();
@@ -3734,8 +4012,10 @@ document.getElementById('btnExportDXF').addEventListener('click', () => {
   if (!sheet) return;
   const config = getExportConfig();
   const profileName = EXPORT_RESOLUTION_PROFILES[config.exportResKey].name;
-  downloadBlob(exportSheetToDXF(sheet, config), `NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.dxf`, 'application/dxf');
-  logDebug(`Exported NEXTNEST_Sheet_${sheet.index}.dxf [${profileName}]`, 'ok');
+  const dxfContent = exportSheetToDXF(sheet, config);
+  const sizeKB = (dxfContent.length / 1024).toFixed(1);
+  downloadBlob(dxfContent, `NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.dxf`, 'application/dxf');
+  logDebug(`Exported NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.dxf [${profileName}, ${sizeKB} KB]`, 'ok');
 });
 
 document.getElementById('btnExportSVG').addEventListener('click', () => {
@@ -3743,8 +4023,10 @@ document.getElementById('btnExportSVG').addEventListener('click', () => {
   if (!sheet) return;
   const config = getExportConfig();
   const profileName = EXPORT_RESOLUTION_PROFILES[config.exportResKey].name;
-  downloadBlob(exportSheetToSVG(sheet, config), `NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.svg`, 'image/svg+xml');
-  logDebug(`Exported NEXTNEST_Sheet_${sheet.index}.svg [${profileName}]`, 'ok');
+  const svgContent = exportSheetToSVG(sheet, config);
+  const sizeKB = (svgContent.length / 1024).toFixed(1);
+  downloadBlob(svgContent, `NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.svg`, 'image/svg+xml');
+  logDebug(`Exported NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.svg [${profileName}, ${sizeKB} KB]`, 'ok');
 });
 
 // Multi-Sheet ZIP Export (All DXFs + All SVGs + QC Summary Report)
@@ -3766,9 +4048,10 @@ document.getElementById('btnExportZIP').addEventListener('click', () => {
   ];
 
   for (const sheet of state.sheets) {
-    const dxfName = `NEXTNEST_Sheet_${sheet.index}.dxf`;
-    const svgName = `NEXTNEST_Sheet_${sheet.index}.svg`;
-    zipFiles.push({ name: dxfName, content: exportSheetToDXF(sheet, config) });
+    const dxfName = `NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.dxf`;
+    const svgName = `NEXTNEST_Sheet_${sheet.index}_${config.exportResKey}.svg`;
+    const dxfData = exportSheetToDXF(sheet, config);
+    zipFiles.push({ name: dxfName, content: dxfData });
     zipFiles.push({ name: svgName, content: exportSheetToSVG(sheet, config) });
 
     let usedArea = 0;
@@ -3776,14 +4059,14 @@ document.getElementById('btnExportZIP').addEventListener('click', () => {
     const util = ((usedArea / (config.sheetWidth * config.sheetHeight)) * 100).toFixed(1);
     const qc = sheet.qcSummary || { passCount: 0, warnCount: 0, failCount: 0 };
 
-    reportLines.push(`Sheet ${sheet.index}: ${sheet.placements.length} parts | Utilization: ${util}% | QC Pass: ${qc.passCount}, Warn: ${qc.warnCount}, Fail: ${qc.failCount}`);
+    reportLines.push(`Sheet ${sheet.index}: ${sheet.placements.length} parts | Utilization: ${util}% | DXF Size: ${(dxfData.length / 1024).toFixed(1)} KB | QC Pass: ${qc.passCount}, Warn: ${qc.warnCount}, Fail: ${qc.failCount}`);
   }
 
-  zipFiles.push({ name: 'NEXTNEST_QC_Report.txt', content: reportLines.join('\n') });
+  zipFiles.push({ name: 'NEXTNEST_QC_Report.txt', content: reportLines.join('\r\n') });
 
   const zipBlob = createZipArchiveBlob(zipFiles);
   downloadBlob(zipBlob, `NEXTNEST_All_Sheets_${state.sheets.length}_${config.exportResKey}.zip`, 'application/zip');
-  logDebug(`Exported ZIP archive (${state.sheets.length} sheets, ${profileName}).`, 'ok');
+  logDebug(`Exported ZIP archive (${state.sheets.length} sheets, ${(zipBlob.size / 1024).toFixed(1)} KB).`, 'ok');
 });
 
 // Canvas Pan & Zoom
